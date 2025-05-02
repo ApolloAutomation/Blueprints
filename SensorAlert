@@ -1,0 +1,42 @@
+blueprint:
+  name: Humidity Alert
+  description: Send an alert when any of the specified switches are turned on, reporting the humidity from the specified sensor.
+  domain: automation
+  input:
+    trigger_switches:
+      name: Trigger Switches
+      description: The switches that trigger the automation when turned on.
+      selector:
+        entity:
+          domain: switch
+          multiple: true
+    humidity_sensor:
+      name: Humidity Sensor
+      description: The humidity sensor to report in the alert.
+      selector:
+        entity:
+          domain: sensor
+          device_class: humidity
+    recipient:
+      name: Recipient Email
+      description: The email addresses to send the alert to, separated by commas.
+      default: "trevor@apolloautomation.com"
+      selector:
+        text:
+    subject:
+      name: Email Subject
+      description: Email subject
+      default: "Apollo Alert"
+      selector:
+        text:
+trigger:
+  - platform: state
+    entity_id: !input trigger_switches
+    to: 'on'
+action:
+  - service: rest_command.apollo_alert
+    data:
+      body: >-
+        Humidity at {{ state_attr(humidity_sensor, 'friendly_name') }} is now at {{ states(humidity_sensor) }} {{ state_attr(humidity_sensor, 'unit_of_measurement') }}
+      recipient: !input recipient
+      subject: !input subject
