@@ -1,6 +1,6 @@
 blueprint:
   name: Apollo Air Sensor Notifications
-  source_url: https://raw.githubusercontent.com/amaisano/homeassistant-apollo-air-blueprint/refs/heads/main/apollo-air-blueprint.yaml
+  source_url: https://raw.githubusercontent.com/ApolloAutomation/Blueprints/AIR-1/AIR-1.yaml
   author: atwixtor@gmail.com
   description: 'This blueprint monitors values from Apollo Air sensors and sends a
     notification if any values exceed the defined thresholds.'
