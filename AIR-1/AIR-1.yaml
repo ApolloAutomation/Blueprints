@@ -523,7 +523,7 @@ action:
     domain: mobile_app
     type: notify
     title: '{{ area_name(temperature_sensor) }} Temperature Alert'
-    message: The temperature is {{ states(temperature_sensor) }}{{ state_attr(temperature_sensor, "unit_of_measurement") }} which is above
+    message: The temperature is {{ states(temperature_sensor)|round(1) }}{{ state_attr(temperature_sensor, "unit_of_measurement") }} which is above
       the maximum of {{ max_temp }}{{ state_attr(temperature_sensor, "unit_of_measurement") }}.
     data: "{{ device_message_data }}"
 - alias: Min Temperature Alert
@@ -535,7 +535,7 @@ action:
     domain: mobile_app
     type: notify
     title: '{{ area_name(temperature_sensor) }} Temperature Alert'
-    message: The temperature is {{ states(temperature_sensor) }}{{ state_attr(temperature_sensor, "unit_of_measurement") }} which is below
+    message: The temperature is {{ states(temperature_sensor)|round(1) }}{{ state_attr(temperature_sensor, "unit_of_measurement") }} which is below
       the minimum of {{ min_temp }}{{ state_attr(temperature_sensor, "unit_of_measurement") }}.
     data: "{{ device_message_data }}"
 - alias: Max Humidity Alert
@@ -547,7 +547,7 @@ action:
     domain: mobile_app
     type: notify
     title: '{{ area_name(humidity_sensor) }} Humidity Alert'
-    message: The humidity is {{ states(humidity_sensor) }}% which is above the maximum
+    message: The humidity is {{ states(humidity_sensor)|round(1) }}% which is above the maximum
       of {{ max_humidity }}%.
     data: "{{ device_message_data }}"
 - alias: Min Humidity Alert
@@ -559,7 +559,7 @@ action:
     domain: mobile_app
     type: notify
     title: '{{ area_name(humidity_sensor) }} Humidity Alert'
-    message: The humidity is {{ states(humidity_sensor) }}% which is below the minimum
+    message: The humidity is {{ states(humidity_sensor)|round(1) }}% which is below the minimum
       of {{ min_humidity }}%.
     data: "{{ device_message_data }}"
 - alias: Max PM1 Alert
@@ -571,7 +571,7 @@ action:
     domain: mobile_app
     type: notify
     title: '{{ area_name(pm1_sensor)}} PM1 Alert'
-    message: The PM1 level is {{ states(pm1_sensor) }}µg/m³ which is above the maximum
+    message: The PM1 level is {{ states(pm1_sensor)|round(1) }}µg/m³ which is above the maximum
       of {{ max_pm1 }}µg/m³.
     data: "{{ device_message_data }}"
 - alias: Max PM2.5 Alert
@@ -583,7 +583,7 @@ action:
     domain: mobile_app
     type: notify
     title: '{{ area_name(pm25_sensor) }} PM2.5 Alert'
-    message: The PM2.5 level is {{ states(pm25_sensor) }}µg/m³ which is above the
+    message: The PM2.5 level is {{ states(pm25_sensor)|round(1) }}µg/m³ which is above the
       maximum of {{ max_pm25 }}µg/m³.
     data: "{{ device_message_data }}"
 - alias: Max PM4 Alert
@@ -595,7 +595,7 @@ action:
     domain: mobile_app
     type: notify
     title: '{{ area_name(pm4_sensor) }} PM4 Alert'
-    message: The PM4 level is {{ states(pm4_sensor) }}µg/m³ which is above the maximum
+    message: The PM4 level is {{ states(pm4_sensor)|round(1) }}µg/m³ which is above the maximum
       of {{ max_pm4 }}µg/m³.
     data: "{{ device_message_data }}"
 - alias: Max PM10 Alert
@@ -607,7 +607,7 @@ action:
     domain: mobile_app
     type: notify
     title: '{{ area_name(pm10_sensor) }} PM10 Alert'
-    message: The PM10 level is {{ states(pm10_sensor) }}µg/m³ which is above the maximum
+    message: The PM10 level is {{ states(pm10_sensor)|round(1) }}µg/m³ which is above the maximum
       of {{ max_pm10 }}µg/m³.
     data: "{{ device_message_data }}"
 - alias: Max VOC Index Alert
@@ -619,7 +619,7 @@ action:
     domain: mobile_app
     type: notify
     title: '{{ area_name(voc_sensor) }} VOC Index Alert'
-    message: The VOC Index is {{ states(voc_sensor) }} which is above the maximum
+    message: The VOC Index is {{ states(voc_sensor)|round(1) }} which is above the maximum
       of {{ max_voc }}.
     data: "{{ device_message_data }}"
 - alias: Max NOx Alert
@@ -631,7 +631,7 @@ action:
     domain: mobile_app
     type: notify
     title: '{{ area_name(nox_sensor) }} NOx Alert'
-    message: The NOx level is {{ states(nox_sensor) }}ppb which is above the maximum
+    message: The NOx level is {{ states(nox_sensor)|round(1) }}ppb which is above the maximum
       of {{ max_nox }}ppb.
     data: "{{ device_message_data }}"
 - alias: Max CO2 Alert
@@ -643,7 +643,7 @@ action:
     domain: mobile_app
     type: notify
     title: '{{ area_name(co2_sensor) }} CO2 Alert'
-    message: The CO2 level is {{ states(co2_sensor) }}ppm which is above the maximum
+    message: The CO2 level is {{ states(co2_sensor)|round(1) }}ppm which is above the maximum
       of {{ max_co2 }}ppm.
     data: "{{ device_message_data }}"
 - alias: Max CO Alert
@@ -655,7 +655,7 @@ action:
     domain: mobile_app
     type: notify
     title: '{{ area_name(carbon_monoxide_sensor) }} Carbon Monoxide Alert'
-    message: The Carbon Monoxide level is {{ states(carbon_monoxide_sensor) }}ppm
+    message: The Carbon Monoxide level is {{ states(carbon_monoxide_sensor)|round(1) }}ppm
       which is above the maximum of {{ max_carbon_monoxide }}ppm.
     data: "{{ device_message_data }}"
 - alias: Max Ethanol Alert
@@ -667,7 +667,7 @@ action:
     domain: mobile_app
     type: notify
     title: '{{ area_name(ethanol_sensor) }} Ethanol Alert'
-    message: The ethanol level is {{ states(ethanol_sensor) }}ppb which is above the
+    message: The ethanol level is {{ states(ethanol_sensor)|round(1) }}ppb which is above the
       maximum of {{ max_ethanol }}ppb.
     data: "{{ device_message_data }}"
 - alias: Max Hydrogen Alert
@@ -679,7 +679,7 @@ action:
     domain: mobile_app
     type: notify
     title: '{{ area_name(hydrogen_sensor) }} Hydrogen Alert'
-    message: The hydrogen level is {{ states(hydrogen_sensor) }}ppm which is above
+    message: The hydrogen level is {{ states(hydrogen_sensor)|round(1) }}ppm which is above
       the maximum of {{ max_hydrogen }}ppm.
     data: "{{ device_message_data }}"
 - alias: Max NO2 Alert
@@ -691,7 +691,7 @@ action:
     domain: mobile_app
     type: notify
     title: '{{ area_name(no2_sensor) }} NO2 Alert'
-    message: The NO2 level is {{ states(no2_sensor) }}ppb which is above the maximum
+    message: The NO2 level is {{ states(no2_sensor)|round(1) }}ppb which is above the maximum
       of {{ max_no2 }}ppb.
     data: "{{ device_message_data }}"
 - alias: Max Ammonia Alert
@@ -703,7 +703,7 @@ action:
     domain: mobile_app
     type: notify
     title: '{{ area_name(ammonia_sensor) }} Ammonia Alert'
-    message: The ammonia level is {{ states(ammonia_sensor) }}ppm which is above the
+    message: The ammonia level is {{ states(ammonia_sensor)|round(1) }}ppm which is above the
       maximum of {{ max_ammonia }}ppm.
     data: "{{ device_message_data }}"
 - alias: Max Methane Alert
@@ -715,6 +715,6 @@ action:
     domain: mobile_app
     type: notify
     title: '{{ area_name(methane_sensor) }} Methane Alert'
-    message: The methane level is {{ states(methane_sensor) }}ppm which is above the
+    message: The methane level is {{ states(methane_sensor)|round(1) }}ppm which is above the
       maximum of {{ max_methane }}ppm.
     data: "{{ device_message_data }}"
