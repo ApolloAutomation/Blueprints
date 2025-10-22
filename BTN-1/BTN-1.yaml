@@ -2,13 +2,13 @@ blueprint:
   name: Apollo Automation BTN-1 Blueprint
   description: |-
     A Blueprint to easily automate with the Apollo Automation [BTN-1 Macro Deck](https://apolloautomation.com/products/btn-1-macro-deck)!
-  author: Brandon Harvey (Smart Home Sellout thanks to [Jesse at ESPHome for the original yaml](https://github.com/jesserockz/blueprints/blob/main/esphome-button-4x.yaml)
+  author: Brandon Harvey aka Smart Home Sellout. Thanks to [Jesse at ESPHome for the original yaml](https://github.com/jesserockz/blueprints/blob/main/esphome-button-4x.yaml)
   domain: automation
-  source_url: https://raw.githubusercontent.com/ApolloAutomation/Blueprints/BTN-1/BTN-1.yaml
+  source_url: https://raw.githubusercontent.com/ApolloAutomation/Blueprints/refs/heads/main/BTN-1/BTN-1.yaml
   input:
     device:
-      name: ESPHome Device
-      description: Select the ESPHome Device
+      name: Apollo BTN-1
+      description: Select the BTN-1 from the dropdown!
       selector:
         device:
           filter:
