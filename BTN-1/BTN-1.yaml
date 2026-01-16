@@ -163,13 +163,19 @@ trigger:
   event_data:
     entity_id: '{{ event_4_entity }}'
 action:
-# FIX: This condition prevents triggering on unavailable/unknown states
 - condition: template
   value_template: >
-    {{ trigger.event.data.new_state is not none 
-       and trigger.event.data.new_state.attributes is defined
-       and trigger.event.data.new_state.attributes.event_type is defined
-       and trigger.event.data.new_state.attributes.event_type in ['click', 'double_click', 'triple_click', 'hold'] }}
+    {% set ns = trigger.event.data.new_state %}
+    {% set os = trigger.event.data.old_state %}
+    {{ ns is not none 
+       and os is not none
+       and ns.state not in ['unavailable', 'unknown', '', 'None']
+       and os.state not in ['unavailable', 'unknown', '', 'None']
+       and ns.attributes is defined
+       and 'event_type' in ns.attributes
+       and ns.attributes.event_type is not none
+       and ns.attributes.event_type != ''
+       and ns.attributes.event_type in ['click', 'double_click', 'triple_click', 'hold'] }}
 - variables:
     action: '{{ trigger.event.data.new_state.attributes.event_type }}'
     button: '{{ trigger.id }}'
