@@ -6,12 +6,23 @@ blueprint:
     🌱 Receive mobile alerts when your Apollo Automation PLT-1 or PLT-1B plant
     sensor detects conditions outside your configured thresholds.
 
-    🪴 Works with both the **PLT-1** (wired) and **PLT-1B** (battery) models.
+    🪴 Works with both the [PLT-1
+    (wired)](https://wiki.apolloautomation.com/products/plt1/calibrating-plt1/)
+    and [PLT-1B
+    (battery)](https://wiki.apolloautomation.com/products/plt1b/calibrating-plt1/)
+    models.
 
-    📖 [Click here](https://wiki.apolloautomation.com) to learn more about the
-    PLT-1 and recommended threshold values for common houseplants.
+    ⚠️ **Calibration required** — your sensor must be calibrated before soil
+    moisture readings are accurate. See the calibration guide for your model:
+    [PLT-1
+    calibration](https://wiki.apolloautomation.com/products/plt1/calibrating-plt1/)
+    | [PLT-1B
+    calibration](https://wiki.apolloautomation.com/products/plt1b/calibrating-plt1/)
 
     **Setup:**
+
+    0️⃣ Calibrate your sensor — enable the Soil ADC entity on your device,
+    record the dry and wet voltage readings, then disable Soil ADC again
 
     1️⃣ Select your PLT-1 or PLT-1B device
 
@@ -19,7 +30,9 @@ blueprint:
 
     3️⃣ Configure your notification device and options
 
-    4️⃣ Enable each sensor group you want to monitor and adjust thresholds
+    4️⃣ Enter your calibration voltages in the Calibration section
+
+    5️⃣ Enable each sensor group you want to monitor and adjust thresholds
   domain: automation
   homeassistant:
     min_version: "2024.6.0"
@@ -182,6 +195,48 @@ blueprint:
                   value: "/15"
                 - label: "Every 30 Minutes"
                   value: "/30"
+
+    # ── Calibration ───────────────────────────────────────────────────────────────
+    calibration_settings:
+      name: Calibration
+      collapsed: true
+      description: >
+        Set the dry and wet calibration voltages for your soil moisture sensor.
+        To get these values: temporarily enable the Soil ADC diagnostic entity
+        on your device (Settings → Devices & Services → your PLT-1 → enable
+        Soil ADC), record the raw voltage with the probe dry in air, then
+        again with the probe submerged in water up to the Apollo label only.
+        Disable Soil ADC again when done — especially important on the PLT-1B
+        to preserve battery life.
+      icon: mdi:tune-variant
+      input:
+        dry_voltage_value:
+          name: Dry Voltage (V)
+          description: >
+            ADC voltage reading with probe dry in air. Default is 1.7 V —
+            update this after reading your Soil ADC entity.
+          default: 1.7
+          selector:
+            number:
+              min: 0.0
+              max: 3.3
+              step: 0.01
+              unit_of_measurement: V
+              mode: box
+
+        wet_voltage_value:
+          name: Wet Voltage (V)
+          description: >
+            ADC voltage reading with probe submerged in water up to the Apollo
+            label. Do not submerge further. Default is 0.9 V.
+          default: 0.9
+          selector:
+            number:
+              min: 0.0
+              max: 3.3
+              step: 0.01
+              unit_of_measurement: V
+              mode: box
 
     # ── Soil Moisture (collapsed) ─────────────────────────────────────────────────
     soil_moisture_settings:
@@ -553,6 +608,13 @@ trigger_variables:
   time_hours: !input time_hours
   disable_repeat: !input disable_repeat
 
+  dry_voltage_entity: >-
+    {{ device_entities(device_id) | select('match', 'number\..*dry_voltage.*') | list | first | default('') }}
+  wet_voltage_entity: >-
+    {{ device_entities(device_id) | select('match', 'number\..*wet_voltage.*|number\..*100_water.*') | list | first | default('') }}
+  dry_voltage_value: !input dry_voltage_value
+  wet_voltage_value: !input wet_voltage_value
+
 # ── Triggers ─────────────────────────────────────────────────────────────────────
 triggers:
   # Repeat / reminder schedule
@@ -681,6 +743,26 @@ conditions:
     value_template: "{{ not disable_repeat or trigger.id != 'time' }}"
 
 action:
+  # Apply calibration voltages to device
+  - if:
+      - condition: template
+        value_template: "{{ dry_voltage_entity != '' }}"
+    then:
+      - action: number.set_value
+        target:
+          entity_id: "{{ dry_voltage_entity }}"
+        data:
+          value: "{{ dry_voltage_value }}"
+  - if:
+      - condition: template
+        value_template: "{{ wet_voltage_entity != '' }}"
+    then:
+      - action: number.set_value
+        target:
+          entity_id: "{{ wet_voltage_entity }}"
+        data:
+          value: "{{ wet_voltage_value }}"
+
   # Soil Moisture — Low
   - alias: Soil Moisture Low Alert
     if:
