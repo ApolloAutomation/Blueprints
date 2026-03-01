@@ -1,22 +1,25 @@
 blueprint:
-  name: Apollo PLT-1 Plant Sensor Alerts
+  name: Apollo Automation PLT-1 Blueprint
   source_url: https://github.com/ApolloAutomation/Blueprints/blob/main/PLT-1/PLT-1.yaml
   author: ApolloAutomation
   description: >
-    Receive alerts when your Apollo Automation PLT-1 or PLT-1B plant sensor
-    detects soil moisture, temperature, humidity, light, UV, or battery levels
-    outside your configured thresholds.
+    🌱 Receive mobile alerts when your Apollo Automation PLT-1 or PLT-1B plant
+    sensor detects conditions outside your configured thresholds.
 
-    Works with both the **PLT-1** (wired) and **PLT-1B** (battery) models.
+    🪴 Works with both the **PLT-1** (wired) and **PLT-1B** (battery) models.
 
-    [Click here](https://wiki.apolloautomation.com) to learn more about the PLT-1
-    and recommended threshold values for common houseplants.
+    📖 [Click here](https://wiki.apolloautomation.com) to learn more about the
+    PLT-1 and recommended threshold values for common houseplants.
 
     **Setup:**
-    1. Select your PLT-1 or PLT-1B device
-    2. Enter your plant's name
-    3. Configure your notification device and options
-    4. Enable each sensor group you want to monitor and adjust thresholds
+
+    1️⃣ Select your PLT-1 or PLT-1B device
+
+    2️⃣ Enter your plant's name
+
+    3️⃣ Configure your notification device and options
+
+    4️⃣ Enable each sensor group you want to monitor and adjust thresholds
   domain: automation
   homeassistant:
     min_version: "2024.6.0"
