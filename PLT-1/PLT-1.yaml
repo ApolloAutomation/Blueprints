@@ -1,7 +1,7 @@
 blueprint:
   name: Apollo Automation PLT-1 Blueprint
   source_url: https://github.com/ApolloAutomation/Blueprints/blob/main/PLT-1/PLT-1.yaml
-  author: ApolloAutomation
+  author: Brandon Harvey aka Smart Home Sellout
   description: >
     🌱 Receive mobile alerts when your Apollo Automation PLT-1 or PLT-1B plant
     sensor detects conditions outside your configured thresholds.
