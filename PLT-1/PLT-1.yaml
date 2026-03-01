@@ -133,6 +133,15 @@ blueprint:
         Alerts also fire immediately when a threshold is first crossed.
       icon: mdi:clock-alert
       input:
+        disable_repeat:
+          name: Disable Repeat Alerts
+          description: >
+            When enabled, alerts fire only once per threshold crossing and
+            are never re-sent on a schedule.
+          default: false
+          selector:
+            boolean:
+
         time_hours:
           name: Repeat — Hours
           description: How often (by hour) to re-send alerts when conditions persist.
@@ -151,8 +160,6 @@ blueprint:
                   value: "/6"
                 - label: "Every 12 Hours"
                   value: "/12"
-                - label: "Never (disable repeat)"
-                  value: "none"
 
         time_minutes:
           name: Repeat — Minutes
@@ -541,6 +548,7 @@ trigger_variables:
     {{ message.data }}
 
   time_hours: !input time_hours
+  disable_repeat: !input disable_repeat
 
 # ── Triggers ─────────────────────────────────────────────────────────────────────
 triggers:
@@ -554,7 +562,8 @@ triggers:
   - trigger: template
     value_template: >-
       {{ soil_moisture_enabled and soil_moisture_entity != ''
-         and states(soil_moisture_entity) | float(50) < min_soil_moisture }}
+         and is_number(states(soil_moisture_entity))
+         and states(soil_moisture_entity) | float < min_soil_moisture }}
     for:
       minutes: !input soil_moisture_for
     id: soil_moisture_min
@@ -562,7 +571,8 @@ triggers:
   - trigger: template
     value_template: >-
       {{ soil_moisture_enabled and soil_moisture_entity != ''
-         and states(soil_moisture_entity) | float(50) > max_soil_moisture }}
+         and is_number(states(soil_moisture_entity))
+         and states(soil_moisture_entity) | float > max_soil_moisture }}
     for:
       minutes: !input soil_moisture_for
     id: soil_moisture_max
@@ -571,7 +581,8 @@ triggers:
   - trigger: template
     value_template: >-
       {{ soil_temp_enabled and soil_temp_entity != ''
-         and states(soil_temp_entity) | float(20) < min_soil_temp }}
+         and is_number(states(soil_temp_entity))
+         and states(soil_temp_entity) | float < min_soil_temp }}
     for:
       minutes: !input soil_temp_for
     id: soil_temp_min
@@ -579,7 +590,8 @@ triggers:
   - trigger: template
     value_template: >-
       {{ soil_temp_enabled and soil_temp_entity != ''
-         and states(soil_temp_entity) | float(20) > max_soil_temp }}
+         and is_number(states(soil_temp_entity))
+         and states(soil_temp_entity) | float > max_soil_temp }}
     for:
       minutes: !input soil_temp_for
     id: soil_temp_max
@@ -588,7 +600,8 @@ triggers:
   - trigger: template
     value_template: >-
       {{ air_temp_enabled and air_temp_entity != ''
-         and states(air_temp_entity) | float(20) < min_air_temp }}
+         and is_number(states(air_temp_entity))
+         and states(air_temp_entity) | float < min_air_temp }}
     for:
       minutes: !input air_temp_for
     id: air_temp_min
@@ -596,7 +609,8 @@ triggers:
   - trigger: template
     value_template: >-
       {{ air_temp_enabled and air_temp_entity != ''
-         and states(air_temp_entity) | float(20) > max_air_temp }}
+         and is_number(states(air_temp_entity))
+         and states(air_temp_entity) | float > max_air_temp }}
     for:
       minutes: !input air_temp_for
     id: air_temp_max
@@ -605,7 +619,8 @@ triggers:
   - trigger: template
     value_template: >-
       {{ air_humidity_enabled and air_humidity_entity != ''
-         and states(air_humidity_entity) | float(50) < min_air_humidity }}
+         and is_number(states(air_humidity_entity))
+         and states(air_humidity_entity) | float < min_air_humidity }}
     for:
       minutes: !input air_humidity_for
     id: air_humidity_min
@@ -613,7 +628,8 @@ triggers:
   - trigger: template
     value_template: >-
       {{ air_humidity_enabled and air_humidity_entity != ''
-         and states(air_humidity_entity) | float(50) > max_air_humidity }}
+         and is_number(states(air_humidity_entity))
+         and states(air_humidity_entity) | float > max_air_humidity }}
     for:
       minutes: !input air_humidity_for
     id: air_humidity_max
@@ -622,7 +638,8 @@ triggers:
   - trigger: template
     value_template: >-
       {{ light_enabled and light_entity != ''
-         and states(light_entity) | float(1000) < min_light }}
+         and is_number(states(light_entity))
+         and states(light_entity) | float < min_light }}
     for:
       minutes: !input light_for
     id: light_min
@@ -630,7 +647,8 @@ triggers:
   - trigger: template
     value_template: >-
       {{ light_enabled and light_entity != ''
-         and states(light_entity) | float(1000) > max_light }}
+         and is_number(states(light_entity))
+         and states(light_entity) | float > max_light }}
     for:
       minutes: !input light_for
     id: light_max
@@ -639,7 +657,8 @@ triggers:
   - trigger: template
     value_template: >-
       {{ uv_enabled and uv_entity != ''
-         and states(uv_entity) | float(0) > max_uv }}
+         and is_number(states(uv_entity))
+         and states(uv_entity) | float > max_uv }}
     for:
       minutes: !input uv_for
     id: uv_max
@@ -648,14 +667,15 @@ triggers:
   - trigger: template
     value_template: >-
       {{ battery_enabled and battery_entity != ''
-         and states(battery_entity) | float(100) < min_battery }}
+         and is_number(states(battery_entity))
+         and states(battery_entity) | float < min_battery }}
     for:
       minutes: !input battery_for
     id: battery_min
 
 conditions:
   - condition: template
-    value_template: "{{ time_hours != 'none' or trigger.id != 'time' }}"
+    value_template: "{{ not disable_repeat or trigger.id != 'time' }}"
 
 action:
   # Soil Moisture — Low
@@ -664,7 +684,8 @@ action:
       - condition: template
         value_template: >-
           {{ soil_moisture_enabled and soil_moisture_entity != ''
-             and states(soil_moisture_entity) | float(50) < min_soil_moisture
+             and is_number(states(soil_moisture_entity))
+             and states(soil_moisture_entity) | float < min_soil_moisture
              and trigger.id in ['time', 'soil_moisture_min'] }}
     then:
       - if:
@@ -676,7 +697,7 @@ action:
             type: notify
             title: "{{ plant_name }} — Soil Moisture Low"
             message: >-
-              Soil moisture is {{ states(soil_moisture_entity) | round(1) }}%,
+              Soil moisture is {{ states(soil_moisture_entity) | float(0) | round(1) }}%,
               below the minimum of {{ min_soil_moisture }}%. Time to water!
             data: "{{ device_message_data }}"
       - !input custom_action
@@ -687,7 +708,8 @@ action:
       - condition: template
         value_template: >-
           {{ soil_moisture_enabled and soil_moisture_entity != ''
-             and states(soil_moisture_entity) | float(50) > max_soil_moisture
+             and is_number(states(soil_moisture_entity))
+             and states(soil_moisture_entity) | float > max_soil_moisture
              and trigger.id in ['time', 'soil_moisture_max'] }}
     then:
       - if:
@@ -699,7 +721,7 @@ action:
             type: notify
             title: "{{ plant_name }} — Soil Moisture High"
             message: >-
-              Soil moisture is {{ states(soil_moisture_entity) | round(1) }}%,
+              Soil moisture is {{ states(soil_moisture_entity) | float(0) | round(1) }}%,
               above the maximum of {{ max_soil_moisture }}%. Risk of overwatering!
             data: "{{ device_message_data }}"
       - !input custom_action
@@ -710,7 +732,8 @@ action:
       - condition: template
         value_template: >-
           {{ soil_temp_enabled and soil_temp_entity != ''
-             and states(soil_temp_entity) | float(20) < min_soil_temp
+             and is_number(states(soil_temp_entity))
+             and states(soil_temp_entity) | float < min_soil_temp
              and trigger.id in ['time', 'soil_temp_min'] }}
     then:
       - if:
@@ -722,7 +745,7 @@ action:
             type: notify
             title: "{{ plant_name }} — Soil Too Cold"
             message: >-
-              Soil temperature is {{ states(soil_temp_entity) | round(1) }}{{ state_attr(soil_temp_entity, 'unit_of_measurement') }},
+              Soil temperature is {{ states(soil_temp_entity) | float(0) | round(1) }}{{ state_attr(soil_temp_entity, 'unit_of_measurement') }},
               below the minimum of {{ min_soil_temp }}{{ state_attr(soil_temp_entity, 'unit_of_measurement') }}.
               Roots may be too cold!
             data: "{{ device_message_data }}"
@@ -734,7 +757,8 @@ action:
       - condition: template
         value_template: >-
           {{ soil_temp_enabled and soil_temp_entity != ''
-             and states(soil_temp_entity) | float(20) > max_soil_temp
+             and is_number(states(soil_temp_entity))
+             and states(soil_temp_entity) | float > max_soil_temp
              and trigger.id in ['time', 'soil_temp_max'] }}
     then:
       - if:
@@ -746,7 +770,7 @@ action:
             type: notify
             title: "{{ plant_name }} — Soil Too Hot"
             message: >-
-              Soil temperature is {{ states(soil_temp_entity) | round(1) }}{{ state_attr(soil_temp_entity, 'unit_of_measurement') }},
+              Soil temperature is {{ states(soil_temp_entity) | float(0) | round(1) }}{{ state_attr(soil_temp_entity, 'unit_of_measurement') }},
               above the maximum of {{ max_soil_temp }}{{ state_attr(soil_temp_entity, 'unit_of_measurement') }}.
               Roots may overheat!
             data: "{{ device_message_data }}"
@@ -758,7 +782,8 @@ action:
       - condition: template
         value_template: >-
           {{ air_temp_enabled and air_temp_entity != ''
-             and states(air_temp_entity) | float(20) < min_air_temp
+             and is_number(states(air_temp_entity))
+             and states(air_temp_entity) | float < min_air_temp
              and trigger.id in ['time', 'air_temp_min'] }}
     then:
       - if:
@@ -770,7 +795,7 @@ action:
             type: notify
             title: "{{ plant_name }} — Air Too Cold"
             message: >-
-              Air temperature is {{ states(air_temp_entity) | round(1) }}{{ state_attr(air_temp_entity, 'unit_of_measurement') }},
+              Air temperature is {{ states(air_temp_entity) | float(0) | round(1) }}{{ state_attr(air_temp_entity, 'unit_of_measurement') }},
               below the minimum of {{ min_air_temp }}{{ state_attr(air_temp_entity, 'unit_of_measurement') }}.
               Environment may be too cold!
             data: "{{ device_message_data }}"
@@ -782,7 +807,8 @@ action:
       - condition: template
         value_template: >-
           {{ air_temp_enabled and air_temp_entity != ''
-             and states(air_temp_entity) | float(20) > max_air_temp
+             and is_number(states(air_temp_entity))
+             and states(air_temp_entity) | float > max_air_temp
              and trigger.id in ['time', 'air_temp_max'] }}
     then:
       - if:
@@ -794,7 +820,7 @@ action:
             type: notify
             title: "{{ plant_name }} — Air Too Hot"
             message: >-
-              Air temperature is {{ states(air_temp_entity) | round(1) }}{{ state_attr(air_temp_entity, 'unit_of_measurement') }},
+              Air temperature is {{ states(air_temp_entity) | float(0) | round(1) }}{{ state_attr(air_temp_entity, 'unit_of_measurement') }},
               above the maximum of {{ max_air_temp }}{{ state_attr(air_temp_entity, 'unit_of_measurement') }}.
               Environment may be too hot!
             data: "{{ device_message_data }}"
@@ -806,7 +832,8 @@ action:
       - condition: template
         value_template: >-
           {{ air_humidity_enabled and air_humidity_entity != ''
-             and states(air_humidity_entity) | float(50) < min_air_humidity
+             and is_number(states(air_humidity_entity))
+             and states(air_humidity_entity) | float < min_air_humidity
              and trigger.id in ['time', 'air_humidity_min'] }}
     then:
       - if:
@@ -818,7 +845,7 @@ action:
             type: notify
             title: "{{ plant_name }} — Air Too Dry"
             message: >-
-              Air humidity is {{ states(air_humidity_entity) | round(1) }}%,
+              Air humidity is {{ states(air_humidity_entity) | float(0) | round(1) }}%,
               below the minimum of {{ min_air_humidity }}%.
               Dry air can stress your plant!
             data: "{{ device_message_data }}"
@@ -830,7 +857,8 @@ action:
       - condition: template
         value_template: >-
           {{ air_humidity_enabled and air_humidity_entity != ''
-             and states(air_humidity_entity) | float(50) > max_air_humidity
+             and is_number(states(air_humidity_entity))
+             and states(air_humidity_entity) | float > max_air_humidity
              and trigger.id in ['time', 'air_humidity_max'] }}
     then:
       - if:
@@ -842,7 +870,7 @@ action:
             type: notify
             title: "{{ plant_name }} — Humidity Too High"
             message: >-
-              Air humidity is {{ states(air_humidity_entity) | round(1) }}%,
+              Air humidity is {{ states(air_humidity_entity) | float(0) | round(1) }}%,
               above the maximum of {{ max_air_humidity }}%.
               Risk of mold or rot!
             data: "{{ device_message_data }}"
@@ -854,7 +882,8 @@ action:
       - condition: template
         value_template: >-
           {{ light_enabled and light_entity != ''
-             and states(light_entity) | float(1000) < min_light
+             and is_number(states(light_entity))
+             and states(light_entity) | float < min_light
              and trigger.id in ['time', 'light_min'] }}
     then:
       - if:
@@ -866,7 +895,7 @@ action:
             type: notify
             title: "{{ plant_name }} — Not Enough Light"
             message: >-
-              Light level is {{ states(light_entity) | round(0) }} lux,
+              Light level is {{ states(light_entity) | float(0) | round(0) }} lux,
               below the minimum of {{ min_light }} lux.
               Move to a brighter spot!
             data: "{{ device_message_data }}"
@@ -878,7 +907,8 @@ action:
       - condition: template
         value_template: >-
           {{ light_enabled and light_entity != ''
-             and states(light_entity) | float(1000) > max_light
+             and is_number(states(light_entity))
+             and states(light_entity) | float > max_light
              and trigger.id in ['time', 'light_max'] }}
     then:
       - if:
@@ -890,7 +920,7 @@ action:
             type: notify
             title: "{{ plant_name }} — Too Much Light"
             message: >-
-              Light level is {{ states(light_entity) | round(0) }} lux,
+              Light level is {{ states(light_entity) | float(0) | round(0) }} lux,
               above the maximum of {{ max_light }} lux.
               Direct sun may scorch leaves!
             data: "{{ device_message_data }}"
@@ -902,7 +932,8 @@ action:
       - condition: template
         value_template: >-
           {{ uv_enabled and uv_entity != ''
-             and states(uv_entity) | float(0) > max_uv
+             and is_number(states(uv_entity))
+             and states(uv_entity) | float > max_uv
              and trigger.id in ['time', 'uv_max'] }}
     then:
       - if:
@@ -914,7 +945,7 @@ action:
             type: notify
             title: "{{ plant_name }} — UV Index High"
             message: >-
-              UV index is {{ states(uv_entity) | round(1) }},
+              UV index is {{ states(uv_entity) | float(0) | round(1) }},
               above the maximum of {{ max_uv }}.
               Excessive UV exposure!
             data: "{{ device_message_data }}"
@@ -926,7 +957,8 @@ action:
       - condition: template
         value_template: >-
           {{ battery_enabled and battery_entity != ''
-             and states(battery_entity) | float(100) < min_battery
+             and is_number(states(battery_entity))
+             and states(battery_entity) | float < min_battery
              and trigger.id in ['time', 'battery_min'] }}
     then:
       - if:
@@ -938,7 +970,7 @@ action:
             type: notify
             title: "{{ plant_name }} — Sensor Battery Low"
             message: >-
-              Sensor battery is {{ states(battery_entity) | round(0) }}%,
+              Sensor battery is {{ states(battery_entity) | float(0) | round(0) }}%,
               below the minimum of {{ min_battery }}%.
               Please recharge!
             data: "{{ device_message_data }}"
