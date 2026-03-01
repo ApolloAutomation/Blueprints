@@ -3,21 +3,18 @@ blueprint:
   source_url: https://github.com/ApolloAutomation/Blueprints/blob/main/PLT-1/PLT-1.yaml
   author: Brandon Harvey aka Smart Home Sellout
   description: >
-    🌱 Receive mobile alerts when your Apollo Automation PLT-1 or PLT-1B plant
-    sensor detects conditions outside your configured thresholds.
+    🌱 Receive mobile alerts when your Apollo Automation PLT-1 detects low soil
+    moisture and more!
 
     🪴 Works with both the [PLT-1
-    (wired)](https://wiki.apolloautomation.com/products/plt1/calibrating-plt1/)
-    and [PLT-1B
-    (battery)](https://wiki.apolloautomation.com/products/plt1b/calibrating-plt1/)
+    (wired)](https://wiki.apolloautomation.com/products/plt1/introduction/) and
+    [PLT-1B
+    (battery)](https://wiki.apolloautomation.com/products/plt1b/introduction/)
     models.
 
     ⚠️ **Calibration required** — your sensor must be calibrated before soil
-    moisture readings are accurate. See the calibration guide for your model:
-    [PLT-1
-    calibration](https://wiki.apolloautomation.com/products/plt1/calibrating-plt1/)
-    | [PLT-1B
-    calibration](https://wiki.apolloautomation.com/products/plt1b/calibrating-plt1/)
+    moisture readings are accurate. See the [calibration
+    guide](https://wiki.apolloautomation.com/products/general/calibrating-and-updating/calibrate-plt1).
 
     **Setup:**
 
