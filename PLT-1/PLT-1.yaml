@@ -533,7 +533,7 @@ trigger_variables:
       {% set message.data = dict(message.data, **{ 'ttl': 0, 'priority': 'high' }) %}
     {% endif %}
     {% if 'sticky' in notify_data %}
-      {% set message.data = dict(message.data, **{ 'sticky': "true" }) %}
+      {% set message.data = dict(message.data, **{ 'sticky': true }) %}
     {% endif %}
     {% if 'channel' in notify_data and notify_channel != '' %}
       {% set message.data = dict(message.data, **{ 'channel': notify_channel }) %}
