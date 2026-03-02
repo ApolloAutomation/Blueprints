@@ -215,8 +215,7 @@ blueprint:
         on your device (Settings → Devices & Services → your PLT-1 → enable
         Soil ADC), record the raw voltage with the probe dry in air, then
         again with the probe submerged in water up to the Apollo label only.
-        Disable Soil ADC again when done — especially important on the PLT-1B
-        to preserve battery life.
+        Disable Soil ADC again when done.
       icon: mdi:tune-variant
       input:
         dry_voltage_value:
