@@ -47,7 +47,19 @@ blueprint:
               model: PLT-1
             - integration: esphome
               manufacturer: ApolloAutomation
+              model: PLT-1_Minimal
+            - integration: esphome
+              manufacturer: ApolloAutomation
+              model: PLT-1BLE
+            - integration: esphome
+              manufacturer: ApolloAutomation
               model: PLT-1B
+            - integration: esphome
+              manufacturer: ApolloAutomation
+              model: PLT-1B_Minimal
+            - integration: esphome
+              manufacturer: ApolloAutomation
+              model: PLT-1BBLE
           multiple: false
 
     plant_name:
