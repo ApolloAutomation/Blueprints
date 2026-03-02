@@ -793,7 +793,8 @@ action:
               Soil moisture is {{ states(soil_moisture_entity) | float(0) | round(1) }}%,
               below the minimum of {{ min_soil_moisture }}%. Time to water!
             data: "{{ device_message_data }}"
-      - !input custom_action
+      - choose: []
+        default: !input custom_action
 
   # Soil Moisture — High
   - alias: Soil Moisture High Alert
@@ -817,7 +818,8 @@ action:
               Soil moisture is {{ states(soil_moisture_entity) | float(0) | round(1) }}%,
               above the maximum of {{ max_soil_moisture }}%. Risk of overwatering!
             data: "{{ device_message_data }}"
-      - !input custom_action
+      - choose: []
+        default: !input custom_action
 
   # Soil Temperature — Low
   - alias: Soil Temperature Low Alert
@@ -842,7 +844,8 @@ action:
               below the minimum of {{ min_soil_temp }}{{ state_attr(soil_temp_entity, 'unit_of_measurement') }}.
               Roots may be too cold!
             data: "{{ device_message_data }}"
-      - !input custom_action
+      - choose: []
+        default: !input custom_action
 
   # Soil Temperature — High
   - alias: Soil Temperature High Alert
@@ -867,7 +870,8 @@ action:
               above the maximum of {{ max_soil_temp }}{{ state_attr(soil_temp_entity, 'unit_of_measurement') }}.
               Roots may overheat!
             data: "{{ device_message_data }}"
-      - !input custom_action
+      - choose: []
+        default: !input custom_action
 
   # Air Temperature — Low
   - alias: Air Temperature Low Alert
@@ -892,7 +896,8 @@ action:
               below the minimum of {{ min_air_temp }}{{ state_attr(air_temp_entity, 'unit_of_measurement') }}.
               Environment may be too cold!
             data: "{{ device_message_data }}"
-      - !input custom_action
+      - choose: []
+        default: !input custom_action
 
   # Air Temperature — High
   - alias: Air Temperature High Alert
@@ -917,7 +922,8 @@ action:
               above the maximum of {{ max_air_temp }}{{ state_attr(air_temp_entity, 'unit_of_measurement') }}.
               Environment may be too hot!
             data: "{{ device_message_data }}"
-      - !input custom_action
+      - choose: []
+        default: !input custom_action
 
   # Air Humidity — Low
   - alias: Air Humidity Low Alert
@@ -942,7 +948,8 @@ action:
               below the minimum of {{ min_air_humidity }}%.
               Dry air can stress your plant!
             data: "{{ device_message_data }}"
-      - !input custom_action
+      - choose: []
+        default: !input custom_action
 
   # Air Humidity — High
   - alias: Air Humidity High Alert
@@ -967,7 +974,8 @@ action:
               above the maximum of {{ max_air_humidity }}%.
               Risk of mold or rot!
             data: "{{ device_message_data }}"
-      - !input custom_action
+      - choose: []
+        default: !input custom_action
 
   # Light — Too Dark
   - alias: Light Too Low Alert
@@ -992,7 +1000,8 @@ action:
               below the minimum of {{ min_light }} lux.
               Move to a brighter spot!
             data: "{{ device_message_data }}"
-      - !input custom_action
+      - choose: []
+        default: !input custom_action
 
   # Light — Too Bright
   - alias: Light Too High Alert
@@ -1017,7 +1026,8 @@ action:
               above the maximum of {{ max_light }} lux.
               Direct sun may scorch leaves!
             data: "{{ device_message_data }}"
-      - !input custom_action
+      - choose: []
+        default: !input custom_action
 
   # UV Index — High
   - alias: UV Index High Alert
@@ -1042,7 +1052,8 @@ action:
               above the maximum of {{ max_uv }}.
               Excessive UV exposure!
             data: "{{ device_message_data }}"
-      - !input custom_action
+      - choose: []
+        default: !input custom_action
 
   # Battery — Low (PLT-1B only)
   - alias: Battery Low Alert
@@ -1067,7 +1078,8 @@ action:
               below the minimum of {{ min_battery }}%.
               Please recharge!
             data: "{{ device_message_data }}"
-      - !input custom_action
+      - choose: []
+        default: !input custom_action
 
 mode: parallel
 max: 10
