@@ -282,19 +282,6 @@ blueprint:
               step: 1
               mode: slider
 
-        soil_moisture_for:
-          name: Soil Moisture Alert Delay (minutes)
-          description: >
-            How long the moisture must be outside the threshold before an alert fires.
-            Prevents false alerts from brief sensor fluctuations.
-          default: 5
-          selector:
-            number:
-              min: 0
-              max: 60
-              unit_of_measurement: "min"
-              step: 1
-
     # ── Soil Temperature (collapsed) ──────────────────────────────────────────────
     soil_temp_settings:
       name: Soil Temperature
@@ -329,16 +316,6 @@ blueprint:
               unit_of_measurement: "°C"
               step: 0.5
 
-        soil_temp_for:
-          name: Soil Temperature Alert Delay (minutes)
-          default: 10
-          selector:
-            number:
-              min: 0
-              max: 120
-              unit_of_measurement: "min"
-              step: 1
-
     # ── Air Temperature (collapsed) ────────────────────────────────────────────────
     air_temp_settings:
       name: Air Temperature
@@ -372,16 +349,6 @@ blueprint:
               max: 50
               unit_of_measurement: "°C"
               step: 0.5
-
-        air_temp_for:
-          name: Air Temperature Alert Delay (minutes)
-          default: 10
-          selector:
-            number:
-              min: 0
-              max: 120
-              unit_of_measurement: "min"
-              step: 1
 
     # ── Air Humidity (collapsed) ───────────────────────────────────────────────────
     air_humidity_settings:
@@ -419,16 +386,6 @@ blueprint:
               step: 1
               mode: slider
 
-        air_humidity_for:
-          name: Air Humidity Alert Delay (minutes)
-          default: 10
-          selector:
-            number:
-              min: 0
-              max: 120
-              unit_of_measurement: "min"
-              step: 1
-
     # ── Light Intensity (collapsed) ────────────────────────────────────────────────
     light_settings:
       name: Light Intensity
@@ -463,16 +420,6 @@ blueprint:
               unit_of_measurement: "lux"
               step: 100
 
-        light_for:
-          name: Light Alert Delay (minutes)
-          default: 30
-          selector:
-            number:
-              min: 0
-              max: 120
-              unit_of_measurement: "min"
-              step: 1
-
     # ── UV Index (collapsed) ──────────────────────────────────────────────────────
     uv_settings:
       name: UV Index
@@ -494,16 +441,6 @@ blueprint:
               min: 0
               max: 11
               unit_of_measurement: "UV index"
-              step: 1
-
-        uv_for:
-          name: UV Alert Delay (minutes)
-          default: 15
-          selector:
-            number:
-              min: 0
-              max: 60
-              unit_of_measurement: "min"
               step: 1
 
     # ── Battery (PLT-1B only, collapsed) ──────────────────────────────────────────
@@ -531,15 +468,6 @@ blueprint:
               step: 5
               mode: slider
 
-        battery_for:
-          name: Battery Alert Delay (minutes)
-          default: 1
-          selector:
-            number:
-              min: 0
-              max: 60
-              unit_of_measurement: "min"
-              step: 1
 
 # ── Trigger Variables ────────────────────────────────────────────────────────────
 trigger_variables:
@@ -637,8 +565,6 @@ triggers:
       {{ soil_moisture_enabled and soil_moisture_entity != ''
          and is_number(states(soil_moisture_entity))
          and states(soil_moisture_entity) | float < min_soil_moisture }}
-    for:
-      minutes: !input soil_moisture_for
     id: soil_moisture_min
 
   - trigger: template
@@ -646,8 +572,6 @@ triggers:
       {{ soil_moisture_enabled and soil_moisture_entity != ''
          and is_number(states(soil_moisture_entity))
          and states(soil_moisture_entity) | float > max_soil_moisture }}
-    for:
-      minutes: !input soil_moisture_for
     id: soil_moisture_max
 
   # Soil temperature
@@ -656,8 +580,6 @@ triggers:
       {{ soil_temp_enabled and soil_temp_entity != ''
          and is_number(states(soil_temp_entity))
          and states(soil_temp_entity) | float < min_soil_temp }}
-    for:
-      minutes: !input soil_temp_for
     id: soil_temp_min
 
   - trigger: template
@@ -665,8 +587,6 @@ triggers:
       {{ soil_temp_enabled and soil_temp_entity != ''
          and is_number(states(soil_temp_entity))
          and states(soil_temp_entity) | float > max_soil_temp }}
-    for:
-      minutes: !input soil_temp_for
     id: soil_temp_max
 
   # Air temperature
@@ -675,8 +595,6 @@ triggers:
       {{ air_temp_enabled and air_temp_entity != ''
          and is_number(states(air_temp_entity))
          and states(air_temp_entity) | float < min_air_temp }}
-    for:
-      minutes: !input air_temp_for
     id: air_temp_min
 
   - trigger: template
@@ -684,8 +602,6 @@ triggers:
       {{ air_temp_enabled and air_temp_entity != ''
          and is_number(states(air_temp_entity))
          and states(air_temp_entity) | float > max_air_temp }}
-    for:
-      minutes: !input air_temp_for
     id: air_temp_max
 
   # Air humidity
@@ -694,8 +610,6 @@ triggers:
       {{ air_humidity_enabled and air_humidity_entity != ''
          and is_number(states(air_humidity_entity))
          and states(air_humidity_entity) | float < min_air_humidity }}
-    for:
-      minutes: !input air_humidity_for
     id: air_humidity_min
 
   - trigger: template
@@ -703,8 +617,6 @@ triggers:
       {{ air_humidity_enabled and air_humidity_entity != ''
          and is_number(states(air_humidity_entity))
          and states(air_humidity_entity) | float > max_air_humidity }}
-    for:
-      minutes: !input air_humidity_for
     id: air_humidity_max
 
   # Light intensity
@@ -713,8 +625,6 @@ triggers:
       {{ light_enabled and light_entity != ''
          and is_number(states(light_entity))
          and states(light_entity) | float < min_light }}
-    for:
-      minutes: !input light_for
     id: light_min
 
   - trigger: template
@@ -722,8 +632,6 @@ triggers:
       {{ light_enabled and light_entity != ''
          and is_number(states(light_entity))
          and states(light_entity) | float > max_light }}
-    for:
-      minutes: !input light_for
     id: light_max
 
   # UV index
@@ -732,8 +640,6 @@ triggers:
       {{ uv_enabled and uv_entity != ''
          and is_number(states(uv_entity))
          and states(uv_entity) | float > max_uv }}
-    for:
-      minutes: !input uv_for
     id: uv_max
 
   # Battery (PLT-1B only)
@@ -742,8 +648,6 @@ triggers:
       {{ battery_enabled and battery_entity != ''
          and is_number(states(battery_entity))
          and states(battery_entity) | float < min_battery }}
-    for:
-      minutes: !input battery_for
     id: battery_min
 
 conditions:
