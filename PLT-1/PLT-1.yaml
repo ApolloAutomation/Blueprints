@@ -1,0 +1,989 @@
+blueprint:
+  name: Apollo Automation PLT-1 Blueprint
+  source_url: https://github.com/ApolloAutomation/Blueprints/blob/main/PLT-1/PLT-1.yaml
+  author: Brandon Harvey aka Smart Home Sellout
+  description: >
+    🌱 Receive mobile alerts when your Apollo Automation PLT-1 detects low soil
+    moisture and more!
+
+    🪴 Works with both the [PLT-1
+    (wired)](https://wiki.apolloautomation.com/products/plt1/introduction/) and
+    [PLT-1B
+    (battery)](https://wiki.apolloautomation.com/products/plt1b/introduction/)
+    models.
+
+    ⚠️ **Calibration required** — your sensor must be calibrated before soil
+    moisture readings are accurate. See the [calibration
+    guide](https://wiki.apolloautomation.com/products/general/calibrating-and-updating/calibrate-plt1).
+
+    **Setup:**
+
+    0️⃣ Calibrate your sensor — enable the Soil ADC entity on your device,
+    record the dry and wet voltage readings, then disable Soil ADC again
+
+    1️⃣ Select your PLT-1 or PLT-1B device
+
+    2️⃣ Enter your plant's name
+
+    3️⃣ Configure your notification device and options
+
+    4️⃣ Enter your calibration voltages in the Calibration section
+
+    5️⃣ Enable each sensor group you want to monitor and adjust thresholds
+  domain: automation
+  homeassistant:
+    min_version: "2024.6.0"
+  input:
+
+    # ── Device ─────────────────────────────────────────────────────────────────
+    device_id:
+      name: PLT-1 Device
+      description: Select your Apollo Automation PLT-1 or PLT-1B plant sensor.
+      selector:
+        device:
+          filter:
+            - integration: esphome
+              manufacturer: ApolloAutomation
+              model: PLT-1
+            - integration: esphome
+              manufacturer: ApolloAutomation
+              model: PLT-1_Minimal
+            - integration: esphome
+              manufacturer: ApolloAutomation
+              model: PLT-1BLE
+            - integration: esphome
+              manufacturer: ApolloAutomation
+              model: PLT-1B
+            - integration: esphome
+              manufacturer: ApolloAutomation
+              model: PLT-1B_Minimal
+            - integration: esphome
+              manufacturer: ApolloAutomation
+              model: PLT-1BBLE
+          multiple: false
+
+    plant_name:
+      name: Plant Name
+      description: Name of your plant. Used to personalise alert messages.
+      default: "My Plant"
+      selector:
+        text:
+
+    # ── Notification Device ─────────────────────────────────────────────────────
+    notify_device:
+      name: Notify Device
+      description: >
+        Select the mobile device to send push notifications to (requires the
+        Home Assistant Companion App). Leave blank to use only the Custom Action
+        below.
+      default: ""
+      selector:
+        device:
+          integration: mobile_app
+          multiple: false
+
+    # ── Notification Options (collapsed) ────────────────────────────────────────
+    notify_options:
+      name: Notification Options
+      icon: mdi:bell-cog
+      collapsed: true
+      input:
+        notify_interruption_level:
+          name: Interruption Level — iOS Only
+          description: >
+            On iOS 15+ you can set how urgently notifications interrupt you.
+            Critical and Time-Sensitive notifications require them to be enabled
+            in the Home Assistant App.
+            [More info](https://community.home-assistant.io/t/653754/192?u=blacky)
+          default: active
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Default
+                  value: "active"
+                - label: Critical Notifications
+                  value: "critical"
+                - label: Time Sensitive Notifications
+                  value: "time-sensitive"
+                - label: Quiet — No Screen Wake
+                  value: "passive"
+
+        notify_data:
+          name: Android Options (Optional)
+          description: >
+            **High Priority** bypasses delivery delays for instant alerts.
+            **Sticky Notification** keeps the alert visible until manually dismissed.
+            **Notification Channel** lets you customise sound and vibration per channel.
+          default: []
+          selector:
+            select:
+              multiple: true
+              options:
+                - label: High Priority
+                  value: "high_priority"
+                - label: Sticky Notification
+                  value: "sticky"
+                - label: Notification Channel
+                  value: "channel"
+
+        notify_channel:
+          name: Android Notification Channel (Optional)
+          description: Channel name when "Notification Channel" is selected above.
+          default: ""
+          selector:
+            text:
+
+    # ── Custom Action (collapsed) ────────────────────────────────────────────────
+    custom_action_settings:
+      name: Custom Action
+      icon: mdi:lightning-bolt
+      collapsed: true
+      input:
+        custom_action:
+          name: Custom Action (Optional)
+          description: >
+            Run any additional action whenever an alert fires — TTS announcement,
+            light flash, email, or any other notification service.
+          default: []
+          selector:
+            action:
+
+    # ── Repeat / Timing (collapsed) ──────────────────────────────────────────────
+    time_settings:
+      name: Repeat Alerts
+      collapsed: true
+      description: >
+        Set a repeating schedule to re-send reminders while a condition persists.
+        Alerts also fire immediately when a threshold is first crossed.
+      icon: mdi:clock-alert
+      input:
+        disable_repeat:
+          name: Disable Repeat Alerts
+          description: >
+            When enabled, alerts fire only once per threshold crossing and
+            are never re-sent on a schedule.
+          default: false
+          selector:
+            boolean:
+
+        time_hours:
+          name: Repeat — Hours
+          description: How often (by hour) to re-send alerts when conditions persist.
+          default: "*"
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: "Every Hour"
+                  value: "*"
+                - label: "Every 2 Hours"
+                  value: "/2"
+                - label: "Every 4 Hours"
+                  value: "/4"
+                - label: "Every 6 Hours"
+                  value: "/6"
+                - label: "Every 12 Hours"
+                  value: "/12"
+
+        time_minutes:
+          name: Repeat — Minutes
+          description: Minute offset for the repeat schedule.
+          default: "1"
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: "At :01"
+                  value: "1"
+                - label: "Every 5 Minutes"
+                  value: "/5"
+                - label: "Every 10 Minutes"
+                  value: "/10"
+                - label: "Every 15 Minutes"
+                  value: "/15"
+                - label: "Every 30 Minutes"
+                  value: "/30"
+
+    # ── Calibration ───────────────────────────────────────────────────────────────
+    calibration_settings:
+      name: Calibration
+      collapsed: true
+      description: >
+        Set the dry and wet calibration voltages for your soil moisture sensor.
+        To get these values: temporarily enable the Soil ADC diagnostic entity
+        on your device (Settings → Devices & Services → your PLT-1 → enable
+        Soil ADC), record the raw voltage with the probe dry in air, then
+        again with the probe submerged in water up to the Apollo label only.
+        Disable Soil ADC again when done.
+      icon: mdi:tune-variant
+      input:
+        dry_voltage_value:
+          name: Dry Voltage (V)
+          description: >
+            ADC voltage reading with probe dry in air. Default is 2.77 V —
+            update this after reading your Soil ADC entity.
+          default: 2.77
+          selector:
+            number:
+              min: 0.0
+              max: 3.3
+              step: 0.01
+              unit_of_measurement: V
+              mode: box
+
+        wet_voltage_value:
+          name: Wet Voltage (V)
+          description: >
+            ADC voltage reading with probe submerged in water up to the Apollo
+            label. Do not submerge further. Default is 1.47 V.
+          default: 1.47
+          selector:
+            number:
+              min: 0.0
+              max: 3.3
+              step: 0.01
+              unit_of_measurement: V
+              mode: box
+
+    # ── Soil Moisture (collapsed) ─────────────────────────────────────────────────
+    soil_moisture_settings:
+      name: Soil Moisture
+      icon: mdi:water-percent
+      collapsed: true
+      input:
+        soil_moisture_enabled:
+          name: Enable Soil Moisture Alerts
+          default: true
+          selector:
+            boolean:
+
+        min_soil_moisture:
+          name: Minimum Soil Moisture (%)
+          description: Alert when moisture drops below this level — plant may need watering.
+          default: 20
+          selector:
+            number:
+              min: 0
+              max: 100
+              unit_of_measurement: "%"
+              step: 1
+              mode: slider
+
+        max_soil_moisture:
+          name: Maximum Soil Moisture (%)
+          description: Alert when moisture rises above this level — risk of overwatering.
+          default: 80
+          selector:
+            number:
+              min: 0
+              max: 100
+              unit_of_measurement: "%"
+              step: 1
+              mode: slider
+
+    # ── Soil Temperature (collapsed) ──────────────────────────────────────────────
+    soil_temp_settings:
+      name: Soil Temperature
+      icon: mdi:thermometer
+      collapsed: true
+      input:
+        soil_temp_enabled:
+          name: Enable Soil Temperature Alerts
+          default: false
+          selector:
+            boolean:
+
+        min_soil_temp:
+          name: Minimum Soil Temperature (°C)
+          description: Alert when soil temperature drops below this value — roots may be too cold.
+          default: 10
+          selector:
+            number:
+              min: -10
+              max: 50
+              unit_of_measurement: "°C"
+              step: 0.5
+
+        max_soil_temp:
+          name: Maximum Soil Temperature (°C)
+          description: Alert when soil temperature rises above this value — roots may overheat.
+          default: 30
+          selector:
+            number:
+              min: -10
+              max: 50
+              unit_of_measurement: "°C"
+              step: 0.5
+
+    # ── Air Temperature (collapsed) ────────────────────────────────────────────────
+    air_temp_settings:
+      name: Air Temperature
+      icon: mdi:home-thermometer
+      collapsed: true
+      input:
+        air_temp_enabled:
+          name: Enable Air Temperature Alerts
+          default: false
+          selector:
+            boolean:
+
+        min_air_temp:
+          name: Minimum Air Temperature (°C)
+          description: Alert when ambient temperature drops below this value.
+          default: 15
+          selector:
+            number:
+              min: -10
+              max: 50
+              unit_of_measurement: "°C"
+              step: 0.5
+
+        max_air_temp:
+          name: Maximum Air Temperature (°C)
+          description: Alert when ambient temperature rises above this value.
+          default: 32
+          selector:
+            number:
+              min: -10
+              max: 50
+              unit_of_measurement: "°C"
+              step: 0.5
+
+    # ── Air Humidity (collapsed) ───────────────────────────────────────────────────
+    air_humidity_settings:
+      name: Air Humidity
+      icon: mdi:water-percent
+      collapsed: true
+      input:
+        air_humidity_enabled:
+          name: Enable Air Humidity Alerts
+          default: false
+          selector:
+            boolean:
+
+        min_air_humidity:
+          name: Minimum Air Humidity (%)
+          description: Alert when humidity drops below this level — dry air stresses plants.
+          default: 30
+          selector:
+            number:
+              min: 0
+              max: 100
+              unit_of_measurement: "%"
+              step: 1
+              mode: slider
+
+        max_air_humidity:
+          name: Maximum Air Humidity (%)
+          description: Alert when humidity rises above this level — risk of mold or rot.
+          default: 80
+          selector:
+            number:
+              min: 0
+              max: 100
+              unit_of_measurement: "%"
+              step: 1
+              mode: slider
+
+    # ── Light Intensity (collapsed) ────────────────────────────────────────────────
+    light_settings:
+      name: Light Intensity
+      icon: mdi:weather-sunny
+      collapsed: true
+      input:
+        light_enabled:
+          name: Enable Light Intensity Alerts
+          default: false
+          selector:
+            boolean:
+
+        min_light:
+          name: Minimum Light (lux)
+          description: Alert when light drops below this level — too dark for healthy growth.
+          default: 100
+          selector:
+            number:
+              min: 0
+              max: 100000
+              unit_of_measurement: "lux"
+              step: 10
+
+        max_light:
+          name: Maximum Light (lux)
+          description: Alert when light rises above this level — too bright or direct sun.
+          default: 50000
+          selector:
+            number:
+              min: 0
+              max: 200000
+              unit_of_measurement: "lux"
+              step: 100
+
+    # ── UV Index (collapsed) ──────────────────────────────────────────────────────
+    uv_settings:
+      name: UV Index
+      icon: mdi:sun-wireless
+      collapsed: true
+      input:
+        uv_enabled:
+          name: Enable UV Index Alerts
+          default: false
+          selector:
+            boolean:
+
+        max_uv:
+          name: Maximum UV Index
+          description: Alert when UV index rises above this level — excessive UV exposure.
+          default: 6
+          selector:
+            number:
+              min: 0
+              max: 11
+              unit_of_measurement: "UV index"
+              step: 1
+
+    # ── Battery (PLT-1B only, collapsed) ──────────────────────────────────────────
+    battery_settings:
+      name: Battery (PLT-1B only)
+      icon: mdi:battery-alert
+      collapsed: true
+      input:
+        battery_enabled:
+          name: Enable Battery Alerts (PLT-1B only)
+          description: Only applies to battery-powered PLT-1B models — has no effect on wired PLT-1 devices.
+          default: false
+          selector:
+            boolean:
+
+        min_battery:
+          name: Minimum Battery Level (%)
+          description: Alert when battery drops below this percentage.
+          default: 20
+          selector:
+            number:
+              min: 5
+              max: 50
+              unit_of_measurement: "%"
+              step: 5
+              mode: slider
+
+
+# ── Trigger Variables ────────────────────────────────────────────────────────────
+trigger_variables:
+
+  # Device and entity discovery
+  device_id: !input device_id
+  plant_name: !input plant_name
+  entities: >-
+    {{ device_entities(device_id) | select('search', '^sensor\.') | list }}
+
+  soil_moisture_entity: >-
+    {{ entities | select('search', 'soil_moisture') | reject('search', 'adc') | list | first | default('') }}
+  soil_temp_entity: >-
+    {{ entities | select('search', 'soil_temperature') | list | first | default('') }}
+  air_temp_entity: >-
+    {{ entities | select('search', 'aht_temperature') | list | first | default('') }}
+  air_humidity_entity: >-
+    {{ entities | select('search', 'aht_humidity') | list | first | default('') }}
+  light_entity: >-
+    {{ entities | select('search', 'ltr390light') | list | first | default('') }}
+  uv_entity: >-
+    {{ entities | select('search', 'ltr390uvindex') | list | first | default('') }}
+  battery_entity: >-
+    {{ entities | select('search', 'batt_pct') | list | first | default('') }}
+
+  # Enable flags
+  soil_moisture_enabled: !input soil_moisture_enabled
+  soil_temp_enabled: !input soil_temp_enabled
+  air_temp_enabled: !input air_temp_enabled
+  air_humidity_enabled: !input air_humidity_enabled
+  light_enabled: !input light_enabled
+  uv_enabled: !input uv_enabled
+  battery_enabled: !input battery_enabled
+
+  # Thresholds
+  min_soil_moisture: !input min_soil_moisture
+  max_soil_moisture: !input max_soil_moisture
+  min_soil_temp: !input min_soil_temp
+  max_soil_temp: !input max_soil_temp
+  min_air_temp: !input min_air_temp
+  max_air_temp: !input max_air_temp
+  min_air_humidity: !input min_air_humidity
+  max_air_humidity: !input max_air_humidity
+  min_light: !input min_light
+  max_light: !input max_light
+  max_uv: !input max_uv
+  min_battery: !input min_battery
+
+  # Notification
+  notify_device: !input notify_device
+  notify_interruption_level: !input notify_interruption_level
+  notify_data: !input notify_data
+  notify_channel: !input notify_channel
+  device_message_data: >-
+    {% set message = namespace(data={}) %}
+    {% set push = namespace(data={}) %}
+    {% if notify_interruption_level in ['active', 'critical', 'time-sensitive', 'passive'] %}
+      {% set push.data = dict(push.data, **{ 'interruption-level': notify_interruption_level }) %}
+    {% endif %}
+    {% if push.data %}
+      {% set message.data = dict(message.data, **{ 'push': push.data }) %}
+    {% endif %}
+    {% if 'high_priority' in notify_data %}
+      {% set message.data = dict(message.data, **{ 'ttl': 0, 'priority': 'high' }) %}
+    {% endif %}
+    {% if 'sticky' in notify_data %}
+      {% set message.data = dict(message.data, **{ 'sticky': true }) %}
+    {% endif %}
+    {% if 'channel' in notify_data and notify_channel != '' %}
+      {% set message.data = dict(message.data, **{ 'channel': notify_channel }) %}
+    {% endif %}
+    {{ message.data }}
+
+  time_hours: !input time_hours
+  disable_repeat: !input disable_repeat
+
+  dry_voltage_entity: >-
+    {{ device_entities(device_id) | select('match', 'number\..*dry_voltage.*') | list | first | default('') }}
+  wet_voltage_entity: >-
+    {{ device_entities(device_id) | select('match', 'number\..*wet_voltage.*|number\..*100_water.*') | list | first | default('') }}
+  dry_voltage_value: !input dry_voltage_value
+  wet_voltage_value: !input wet_voltage_value
+
+# ── Triggers ─────────────────────────────────────────────────────────────────────
+triggers:
+  # Repeat / reminder schedule
+  - trigger: time_pattern
+    hours: !input time_hours
+    minutes: !input time_minutes
+    id: time
+
+  # Soil moisture
+  - trigger: template
+    value_template: >-
+      {{ soil_moisture_enabled and soil_moisture_entity != ''
+         and is_number(states(soil_moisture_entity))
+         and states(soil_moisture_entity) | float < min_soil_moisture }}
+    id: soil_moisture_min
+
+  - trigger: template
+    value_template: >-
+      {{ soil_moisture_enabled and soil_moisture_entity != ''
+         and is_number(states(soil_moisture_entity))
+         and states(soil_moisture_entity) | float > max_soil_moisture }}
+    id: soil_moisture_max
+
+  # Soil temperature
+  - trigger: template
+    value_template: >-
+      {{ soil_temp_enabled and soil_temp_entity != ''
+         and is_number(states(soil_temp_entity))
+         and states(soil_temp_entity) | float < min_soil_temp }}
+    id: soil_temp_min
+
+  - trigger: template
+    value_template: >-
+      {{ soil_temp_enabled and soil_temp_entity != ''
+         and is_number(states(soil_temp_entity))
+         and states(soil_temp_entity) | float > max_soil_temp }}
+    id: soil_temp_max
+
+  # Air temperature
+  - trigger: template
+    value_template: >-
+      {{ air_temp_enabled and air_temp_entity != ''
+         and is_number(states(air_temp_entity))
+         and states(air_temp_entity) | float < min_air_temp }}
+    id: air_temp_min
+
+  - trigger: template
+    value_template: >-
+      {{ air_temp_enabled and air_temp_entity != ''
+         and is_number(states(air_temp_entity))
+         and states(air_temp_entity) | float > max_air_temp }}
+    id: air_temp_max
+
+  # Air humidity
+  - trigger: template
+    value_template: >-
+      {{ air_humidity_enabled and air_humidity_entity != ''
+         and is_number(states(air_humidity_entity))
+         and states(air_humidity_entity) | float < min_air_humidity }}
+    id: air_humidity_min
+
+  - trigger: template
+    value_template: >-
+      {{ air_humidity_enabled and air_humidity_entity != ''
+         and is_number(states(air_humidity_entity))
+         and states(air_humidity_entity) | float > max_air_humidity }}
+    id: air_humidity_max
+
+  # Light intensity
+  - trigger: template
+    value_template: >-
+      {{ light_enabled and light_entity != ''
+         and is_number(states(light_entity))
+         and states(light_entity) | float < min_light }}
+    id: light_min
+
+  - trigger: template
+    value_template: >-
+      {{ light_enabled and light_entity != ''
+         and is_number(states(light_entity))
+         and states(light_entity) | float > max_light }}
+    id: light_max
+
+  # UV index
+  - trigger: template
+    value_template: >-
+      {{ uv_enabled and uv_entity != ''
+         and is_number(states(uv_entity))
+         and states(uv_entity) | float > max_uv }}
+    id: uv_max
+
+  # Battery (PLT-1B only)
+  - trigger: template
+    value_template: >-
+      {{ battery_enabled and battery_entity != ''
+         and is_number(states(battery_entity))
+         and states(battery_entity) | float < min_battery }}
+    id: battery_min
+
+conditions:
+  - condition: template
+    value_template: "{{ not disable_repeat or trigger.id != 'time' }}"
+
+action:
+  # Apply calibration voltages to device
+  - if:
+      - condition: template
+        value_template: "{{ dry_voltage_entity != '' }}"
+    then:
+      - action: number.set_value
+        target:
+          entity_id: "{{ dry_voltage_entity }}"
+        data:
+          value: "{{ dry_voltage_value }}"
+  - if:
+      - condition: template
+        value_template: "{{ wet_voltage_entity != '' }}"
+    then:
+      - action: number.set_value
+        target:
+          entity_id: "{{ wet_voltage_entity }}"
+        data:
+          value: "{{ wet_voltage_value }}"
+
+  # Soil Moisture — Low
+  - alias: Soil Moisture Low Alert
+    if:
+      - condition: template
+        value_template: >-
+          {{ soil_moisture_enabled and soil_moisture_entity != ''
+             and is_number(states(soil_moisture_entity))
+             and states(soil_moisture_entity) | float < min_soil_moisture
+             and trigger.id in ['time', 'soil_moisture_min'] }}
+    then:
+      - if:
+          - condition: template
+            value_template: "{{ notify_device is not none and notify_device != '' }}"
+        then:
+          - device_id: !input notify_device
+            domain: mobile_app
+            type: notify
+            title: "{{ plant_name }} — Soil Moisture Low"
+            message: >-
+              Soil moisture is {{ states(soil_moisture_entity) | float(0) | round(1) }}%,
+              below the minimum of {{ min_soil_moisture }}%. Time to water!
+            data: "{{ device_message_data }}"
+      - choose: []
+        default: !input custom_action
+
+  # Soil Moisture — High
+  - alias: Soil Moisture High Alert
+    if:
+      - condition: template
+        value_template: >-
+          {{ soil_moisture_enabled and soil_moisture_entity != ''
+             and is_number(states(soil_moisture_entity))
+             and states(soil_moisture_entity) | float > max_soil_moisture
+             and trigger.id in ['time', 'soil_moisture_max'] }}
+    then:
+      - if:
+          - condition: template
+            value_template: "{{ notify_device is not none and notify_device != '' }}"
+        then:
+          - device_id: !input notify_device
+            domain: mobile_app
+            type: notify
+            title: "{{ plant_name }} — Soil Moisture High"
+            message: >-
+              Soil moisture is {{ states(soil_moisture_entity) | float(0) | round(1) }}%,
+              above the maximum of {{ max_soil_moisture }}%. Risk of overwatering!
+            data: "{{ device_message_data }}"
+      - choose: []
+        default: !input custom_action
+
+  # Soil Temperature — Low
+  - alias: Soil Temperature Low Alert
+    if:
+      - condition: template
+        value_template: >-
+          {{ soil_temp_enabled and soil_temp_entity != ''
+             and is_number(states(soil_temp_entity))
+             and states(soil_temp_entity) | float < min_soil_temp
+             and trigger.id in ['time', 'soil_temp_min'] }}
+    then:
+      - if:
+          - condition: template
+            value_template: "{{ notify_device is not none and notify_device != '' }}"
+        then:
+          - device_id: !input notify_device
+            domain: mobile_app
+            type: notify
+            title: "{{ plant_name }} — Soil Too Cold"
+            message: >-
+              Soil temperature is {{ states(soil_temp_entity) | float(0) | round(1) }}{{ state_attr(soil_temp_entity, 'unit_of_measurement') }},
+              below the minimum of {{ min_soil_temp }}{{ state_attr(soil_temp_entity, 'unit_of_measurement') }}.
+              Roots may be too cold!
+            data: "{{ device_message_data }}"
+      - choose: []
+        default: !input custom_action
+
+  # Soil Temperature — High
+  - alias: Soil Temperature High Alert
+    if:
+      - condition: template
+        value_template: >-
+          {{ soil_temp_enabled and soil_temp_entity != ''
+             and is_number(states(soil_temp_entity))
+             and states(soil_temp_entity) | float > max_soil_temp
+             and trigger.id in ['time', 'soil_temp_max'] }}
+    then:
+      - if:
+          - condition: template
+            value_template: "{{ notify_device is not none and notify_device != '' }}"
+        then:
+          - device_id: !input notify_device
+            domain: mobile_app
+            type: notify
+            title: "{{ plant_name }} — Soil Too Hot"
+            message: >-
+              Soil temperature is {{ states(soil_temp_entity) | float(0) | round(1) }}{{ state_attr(soil_temp_entity, 'unit_of_measurement') }},
+              above the maximum of {{ max_soil_temp }}{{ state_attr(soil_temp_entity, 'unit_of_measurement') }}.
+              Roots may overheat!
+            data: "{{ device_message_data }}"
+      - choose: []
+        default: !input custom_action
+
+  # Air Temperature — Low
+  - alias: Air Temperature Low Alert
+    if:
+      - condition: template
+        value_template: >-
+          {{ air_temp_enabled and air_temp_entity != ''
+             and is_number(states(air_temp_entity))
+             and states(air_temp_entity) | float < min_air_temp
+             and trigger.id in ['time', 'air_temp_min'] }}
+    then:
+      - if:
+          - condition: template
+            value_template: "{{ notify_device is not none and notify_device != '' }}"
+        then:
+          - device_id: !input notify_device
+            domain: mobile_app
+            type: notify
+            title: "{{ plant_name }} — Air Too Cold"
+            message: >-
+              Air temperature is {{ states(air_temp_entity) | float(0) | round(1) }}{{ state_attr(air_temp_entity, 'unit_of_measurement') }},
+              below the minimum of {{ min_air_temp }}{{ state_attr(air_temp_entity, 'unit_of_measurement') }}.
+              Environment may be too cold!
+            data: "{{ device_message_data }}"
+      - choose: []
+        default: !input custom_action
+
+  # Air Temperature — High
+  - alias: Air Temperature High Alert
+    if:
+      - condition: template
+        value_template: >-
+          {{ air_temp_enabled and air_temp_entity != ''
+             and is_number(states(air_temp_entity))
+             and states(air_temp_entity) | float > max_air_temp
+             and trigger.id in ['time', 'air_temp_max'] }}
+    then:
+      - if:
+          - condition: template
+            value_template: "{{ notify_device is not none and notify_device != '' }}"
+        then:
+          - device_id: !input notify_device
+            domain: mobile_app
+            type: notify
+            title: "{{ plant_name }} — Air Too Hot"
+            message: >-
+              Air temperature is {{ states(air_temp_entity) | float(0) | round(1) }}{{ state_attr(air_temp_entity, 'unit_of_measurement') }},
+              above the maximum of {{ max_air_temp }}{{ state_attr(air_temp_entity, 'unit_of_measurement') }}.
+              Environment may be too hot!
+            data: "{{ device_message_data }}"
+      - choose: []
+        default: !input custom_action
+
+  # Air Humidity — Low
+  - alias: Air Humidity Low Alert
+    if:
+      - condition: template
+        value_template: >-
+          {{ air_humidity_enabled and air_humidity_entity != ''
+             and is_number(states(air_humidity_entity))
+             and states(air_humidity_entity) | float < min_air_humidity
+             and trigger.id in ['time', 'air_humidity_min'] }}
+    then:
+      - if:
+          - condition: template
+            value_template: "{{ notify_device is not none and notify_device != '' }}"
+        then:
+          - device_id: !input notify_device
+            domain: mobile_app
+            type: notify
+            title: "{{ plant_name }} — Air Too Dry"
+            message: >-
+              Air humidity is {{ states(air_humidity_entity) | float(0) | round(1) }}%,
+              below the minimum of {{ min_air_humidity }}%.
+              Dry air can stress your plant!
+            data: "{{ device_message_data }}"
+      - choose: []
+        default: !input custom_action
+
+  # Air Humidity — High
+  - alias: Air Humidity High Alert
+    if:
+      - condition: template
+        value_template: >-
+          {{ air_humidity_enabled and air_humidity_entity != ''
+             and is_number(states(air_humidity_entity))
+             and states(air_humidity_entity) | float > max_air_humidity
+             and trigger.id in ['time', 'air_humidity_max'] }}
+    then:
+      - if:
+          - condition: template
+            value_template: "{{ notify_device is not none and notify_device != '' }}"
+        then:
+          - device_id: !input notify_device
+            domain: mobile_app
+            type: notify
+            title: "{{ plant_name }} — Humidity Too High"
+            message: >-
+              Air humidity is {{ states(air_humidity_entity) | float(0) | round(1) }}%,
+              above the maximum of {{ max_air_humidity }}%.
+              Risk of mold or rot!
+            data: "{{ device_message_data }}"
+      - choose: []
+        default: !input custom_action
+
+  # Light — Too Dark
+  - alias: Light Too Low Alert
+    if:
+      - condition: template
+        value_template: >-
+          {{ light_enabled and light_entity != ''
+             and is_number(states(light_entity))
+             and states(light_entity) | float < min_light
+             and trigger.id in ['time', 'light_min'] }}
+    then:
+      - if:
+          - condition: template
+            value_template: "{{ notify_device is not none and notify_device != '' }}"
+        then:
+          - device_id: !input notify_device
+            domain: mobile_app
+            type: notify
+            title: "{{ plant_name }} — Not Enough Light"
+            message: >-
+              Light level is {{ states(light_entity) | float(0) | round(0) }} lux,
+              below the minimum of {{ min_light }} lux.
+              Move to a brighter spot!
+            data: "{{ device_message_data }}"
+      - choose: []
+        default: !input custom_action
+
+  # Light — Too Bright
+  - alias: Light Too High Alert
+    if:
+      - condition: template
+        value_template: >-
+          {{ light_enabled and light_entity != ''
+             and is_number(states(light_entity))
+             and states(light_entity) | float > max_light
+             and trigger.id in ['time', 'light_max'] }}
+    then:
+      - if:
+          - condition: template
+            value_template: "{{ notify_device is not none and notify_device != '' }}"
+        then:
+          - device_id: !input notify_device
+            domain: mobile_app
+            type: notify
+            title: "{{ plant_name }} — Too Much Light"
+            message: >-
+              Light level is {{ states(light_entity) | float(0) | round(0) }} lux,
+              above the maximum of {{ max_light }} lux.
+              Direct sun may scorch leaves!
+            data: "{{ device_message_data }}"
+      - choose: []
+        default: !input custom_action
+
+  # UV Index — High
+  - alias: UV Index High Alert
+    if:
+      - condition: template
+        value_template: >-
+          {{ uv_enabled and uv_entity != ''
+             and is_number(states(uv_entity))
+             and states(uv_entity) | float > max_uv
+             and trigger.id in ['time', 'uv_max'] }}
+    then:
+      - if:
+          - condition: template
+            value_template: "{{ notify_device is not none and notify_device != '' }}"
+        then:
+          - device_id: !input notify_device
+            domain: mobile_app
+            type: notify
+            title: "{{ plant_name }} — UV Index High"
+            message: >-
+              UV index is {{ states(uv_entity) | float(0) | round(1) }},
+              above the maximum of {{ max_uv }}.
+              Excessive UV exposure!
+            data: "{{ device_message_data }}"
+      - choose: []
+        default: !input custom_action
+
+  # Battery — Low (PLT-1B only)
+  - alias: Battery Low Alert
+    if:
+      - condition: template
+        value_template: >-
+          {{ battery_enabled and battery_entity != ''
+             and is_number(states(battery_entity))
+             and states(battery_entity) | float < min_battery
+             and trigger.id in ['time', 'battery_min'] }}
+    then:
+      - if:
+          - condition: template
+            value_template: "{{ notify_device is not none and notify_device != '' }}"
+        then:
+          - device_id: !input notify_device
+            domain: mobile_app
+            type: notify
+            title: "{{ plant_name }} — Sensor Battery Low"
+            message: >-
+              Sensor battery is {{ states(battery_entity) | float(0) | round(0) }}%,
+              below the minimum of {{ min_battery }}%.
+              Please recharge!
+            data: "{{ device_message_data }}"
+      - choose: []
+        default: !input custom_action
+
+mode: parallel
+max: 10
