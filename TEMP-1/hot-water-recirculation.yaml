@@ -242,13 +242,26 @@ actions:
             id: valve_opened
         sequence: !input ready_actions
 
-    # The start trigger fired: turn the pump on (if it isn't already)
-    default:
-      - if:
+      # Start: only the user's start trigger reaches here. It has no built-in
+      # id, so the "not one of our ids" guard is true only for it. Built-in
+      # triggers that fail their guards above match nothing and do nothing,
+      # so they can no longer fall through and start the pump.
+      - conditions:
+          - condition: not
+            conditions:
+              - condition: trigger
+                id:
+                  - open_temp
+                  - open_power
+                  - pump_done
+                  - pump_safety
+                  - close_temp
+                  - valve_safety
+                  - valve_opened
           - condition: state
             entity_id: !input pump_switch
             state: "off"
-        then:
+        sequence:
           - action: switch.turn_on
             target:
               entity_id: !input pump_switch
