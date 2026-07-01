@@ -15,13 +15,13 @@ blueprint:
 
     **Setup:**
 
-    1️⃣ Pick the trigger that starts a cycle — your button's press, like an Aqara single click
+    1️⃣ Pick the trigger that starts a cycle: your button's press, like an Aqara single click
 
     2️⃣ Select your pump plug, the pump's power sensor, the valve plug, and the TEMP-1 probe
 
     3️⃣ Set the activate/return temperatures and the power level that means the pump has finished
 
-    4️⃣ (Optional) add actions to run when the water is ready — a speaker announcement, the shower fan, a light flash
+    4️⃣ (Optional) add actions to run when the water is ready: a speaker announcement, the shower fan, a light flash
   domain: automation
   homeassistant:
     min_version: "2024.10.0"
@@ -32,8 +32,8 @@ blueprint:
       name: Start trigger
       description: >
         What kicks off a cycle. Add your button's press here (for example, your
-        Aqara button single click). You can add more than one trigger — for
-        instance also add "pump plug turned on" so a dashboard tap or a voice
+        Aqara button single click). You can add more than one trigger. For
+        instance, also add "pump plug turned on" so a dashboard tap or a voice
         command starts it too.
       selector:
         trigger:
@@ -139,8 +139,8 @@ mode: queued
 max: 10
 
 triggers:
-  # The user's start trigger (button press, etc.). Has no id, so it falls to the
-  # default branch below, which starts the pump.
+  # The user's start trigger (button press, etc.). It has no built-in id, so it
+  # reaches the guarded start branch below, which turns the pump on.
   - triggers: !input start_trigger
   - trigger: numeric_state
     id: open_temp
