@@ -295,25 +295,29 @@ blueprint:
             boolean:
 
         min_soil_temp:
-          name: Minimum Soil Temperature (°C)
-          description: Alert when soil temperature drops below this value — roots may be too cold.
+          name: Minimum Soil Temperature
+          description: >
+            Alert when soil temperature drops below this value — roots may be
+            too cold. Use the unit your sensor shows in Home Assistant.
+            10 °C / 50 °F is a good starting point.
           default: 10
           selector:
             number:
-              min: -10
-              max: 50
-              unit_of_measurement: "°C"
+              min: -20
+              max: 130
               step: 0.5
 
         max_soil_temp:
-          name: Maximum Soil Temperature (°C)
-          description: Alert when soil temperature rises above this value — roots may overheat.
+          name: Maximum Soil Temperature
+          description: >
+            Alert when soil temperature rises above this value — roots may
+            overheat. Use the unit your sensor shows in Home Assistant.
+            30 °C / 86 °F is a good starting point.
           default: 30
           selector:
             number:
-              min: -10
-              max: 50
-              unit_of_measurement: "°C"
+              min: -20
+              max: 130
               step: 0.5
 
     # ── Air Temperature (collapsed) ────────────────────────────────────────────────
@@ -329,25 +333,29 @@ blueprint:
             boolean:
 
         min_air_temp:
-          name: Minimum Air Temperature (°C)
-          description: Alert when ambient temperature drops below this value.
+          name: Minimum Air Temperature
+          description: >
+            Alert when ambient temperature drops below this value. Use the
+            unit your sensor shows in Home Assistant. 15 °C / 59 °F is a good
+            starting point.
           default: 15
           selector:
             number:
-              min: -10
-              max: 50
-              unit_of_measurement: "°C"
+              min: -20
+              max: 130
               step: 0.5
 
         max_air_temp:
-          name: Maximum Air Temperature (°C)
-          description: Alert when ambient temperature rises above this value.
+          name: Maximum Air Temperature
+          description: >
+            Alert when ambient temperature rises above this value. Use the
+            unit your sensor shows in Home Assistant. 32 °C / 90 °F is a good
+            starting point.
           default: 32
           selector:
             number:
-              min: -10
-              max: 50
-              unit_of_measurement: "°C"
+              min: -20
+              max: 130
               step: 0.5
 
     # ── Air Humidity (collapsed) ───────────────────────────────────────────────────
