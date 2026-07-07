@@ -1,0 +1,310 @@
+blueprint:
+  name: Apollo Automation Hot Water Recirculation (TEMP-1)
+  author: Brandon Harvey aka Smart Home Sellout
+  source_url: https://raw.githubusercontent.com/ApolloAutomation/Blueprints/refs/heads/main/TEMP-1/hot-water-recirculation.yaml
+  description: >
+    🔥 Instant hot water from an under-sink mini tank, plus "unlimited" hot water
+    from your main water heater, with no water run down the drain and no
+    cold-water sandwich.
+
+    💧 An Apollo TEMP-1 probe on the hot line tells Home Assistant the moment the
+    recirculated water is hot, and a 3-way valve switches the sinks over to the
+    house heater. When the line cools, it reverts to the mini tank.
+
+    📖 Full write-up: https://wiki.apolloautomation.com/products/temp1/examples/hot-water-recirculation/
+
+    **Setup:**
+
+    1️⃣ Pick the trigger that starts a cycle: your button's press, like an Aqara single click
+
+    2️⃣ Select your pump plug, the pump's power sensor, the valve plug, and the TEMP-1 probe
+
+    3️⃣ Set the activate/return temperatures and the power level that means the pump has finished
+
+    4️⃣ (Optional) add actions to run when the water is ready: a speaker announcement, the shower fan, a light flash
+  domain: automation
+  homeassistant:
+    min_version: "2024.10.0"
+  input:
+
+    # ── Start ────────────────────────────────────────────────────────────────
+    start_trigger:
+      name: Start trigger
+      description: >
+        What kicks off a cycle. Add your button's press here (for example, your
+        Aqara button single click). You can add more than one trigger. For
+        instance, also add "pump plug turned on" so a dashboard tap or a voice
+        command starts it too.
+      selector:
+        trigger:
+
+    # ── Devices ──────────────────────────────────────────────────────────────
+    pump_switch:
+      name: Circulator pump plug
+      description: The smart plug that powers the recirculation pump.
+      selector:
+        entity:
+          filter:
+            - domain: switch
+    pump_power:
+      name: Circulator pump power
+      description: The pump plug's power sensor (W). This is how the system knows the pump has finished.
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+              device_class: power
+    valve_switch:
+      name: 3-way valve plug
+      description: >
+        The smart plug that powers the 3-way motorized valve. Powered = the sinks
+        draw from the house heater; unpowered = back to the mini tank.
+      selector:
+        entity:
+          filter:
+            - domain: switch
+    temp_probe:
+      name: Hot line temperature (TEMP-1)
+      description: The Apollo TEMP-1 probe reading the hot line at the angle stop.
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+              device_class: temperature
+
+    # ── Thresholds ───────────────────────────────────────────────────────────
+    activate_temp:
+      name: Activate temperature
+      description: >
+        Open the valve once the line climbs above this, in the unit your probe
+        shows in Home Assistant. 90 °F / 32 °C is a good starting point.
+      default: 90
+      selector:
+        number:
+          min: 0
+          max: 160
+          step: 1
+          mode: box
+    return_temp:
+      name: Return temperature
+      description: >
+        Close the valve (back to the mini tank) once the line drops below this.
+        Set it below the activate temperature so a brief dip in the reading
+        doesn't close the valve early. 80 °F / 27 °C is a good starting point.
+      default: 80
+      selector:
+        number:
+          min: 0
+          max: 160
+          step: 1
+          mode: box
+    min_power:
+      name: Pump finished below (W)
+      description: >
+        The pump counts as finished when its draw falls below this. Set it under
+        the pump's running wattage but above its standby.
+      default: 20
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 0.5
+          unit_of_measurement: W
+          mode: box
+
+    # ── Safety timeouts ──────────────────────────────────────────────────────
+    pump_max_runtime:
+      name: Pump safety timeout
+      description: Force the pump off if it runs longer than this.
+      default:
+        minutes: 5
+      selector:
+        duration: {}
+    valve_max_open:
+      name: Valve safety timeout
+      description: Force the valve closed if it stays open longer than this.
+      default:
+        minutes: 60
+      selector:
+        duration: {}
+
+    # ── When ready (optional) ─────────────────────────────────────────────────
+    ready_actions:
+      name: Actions when the water is ready
+      description: >
+        Optional. Runs the moment the valve opens and hot water is available:
+        announce on a speaker, turn on the shower fan, flash a light, anything.
+      default: []
+      selector:
+        action: {}
+
+# Parallel, like the seven separate automations this replaces: a slow
+# ready_actions run must never hold up the safety shutoffs behind it in a
+# queue. Every branch is a guarded, idempotent switch call, so overlapping
+# runs are safe.
+mode: parallel
+max: 10
+
+triggers:
+  # The user's start trigger (button press, etc.). It has no built-in id, so it
+  # reaches the guarded start branch below, which starts a cycle.
+  - triggers: !input start_trigger
+  - trigger: numeric_state
+    id: open_temp
+    entity_id: !input temp_probe
+    above: !input activate_temp
+  - trigger: numeric_state
+    id: open_power
+    entity_id: !input pump_power
+    below: !input min_power
+  - trigger: numeric_state
+    id: pump_done
+    entity_id: !input pump_power
+    below: !input min_power
+    for: "00:00:30"
+  - trigger: state
+    id: pump_safety
+    entity_id: !input pump_switch
+    to: "on"
+    for: !input pump_max_runtime
+  - trigger: numeric_state
+    id: close_temp
+    entity_id: !input temp_probe
+    below: !input return_temp
+  - trigger: state
+    id: valve_safety
+    entity_id: !input valve_switch
+    to: "on"
+    for: !input valve_max_open
+  - trigger: state
+    id: valve_opened
+    entity_id: !input valve_switch
+    from: "off"
+    to: "on"
+  # Fires however the pump plug gets turned on: the start branch below, a
+  # dashboard tap, a voice command. Backs the already-hot check so those
+  # paths don't leave the pump idling until the safety timeout.
+  - trigger: state
+    id: pump_started
+    entity_id: !input pump_switch
+    from: "off"
+    to: "on"
+
+actions:
+  - choose:
+      # Open the valve: the line is hot, or the pump has finished
+      - conditions:
+          - condition: trigger
+            id:
+              - open_temp
+              - open_power
+          - condition: state
+            entity_id: !input pump_switch
+            state: "on"
+        sequence:
+          - action: switch.turn_on
+            target:
+              entity_id: !input valve_switch
+
+      # The pump just turned on but the line is already hot (a dashboard tap
+      # or voice command on the plug itself): skip the pump, open the valve
+      - conditions:
+          - condition: trigger
+            id: pump_started
+          - condition: numeric_state
+            entity_id: !input temp_probe
+            above: !input activate_temp
+        sequence:
+          - action: switch.turn_off
+            target:
+              entity_id: !input pump_switch
+          - action: switch.turn_on
+            target:
+              entity_id: !input valve_switch
+
+      # Stop the pump: its draw stayed low for 30 seconds, so it won't restart
+      - conditions:
+          - condition: trigger
+            id: pump_done
+          - condition: state
+            entity_id: !input pump_switch
+            state: "on"
+        sequence:
+          - action: switch.turn_off
+            target:
+              entity_id: !input pump_switch
+
+      # Safety: the pump ran too long
+      - conditions:
+          - condition: trigger
+            id: pump_safety
+        sequence:
+          - action: switch.turn_off
+            target:
+              entity_id: !input pump_switch
+
+      # Close the valve: the line cooled off (and the pump is already off)
+      - conditions:
+          - condition: trigger
+            id: close_temp
+          - condition: state
+            entity_id: !input valve_switch
+            state: "on"
+          - condition: state
+            entity_id: !input pump_switch
+            state: "off"
+        sequence:
+          - action: switch.turn_off
+            target:
+              entity_id: !input valve_switch
+
+      # Safety: the valve stayed open too long
+      - conditions:
+          - condition: trigger
+            id: valve_safety
+        sequence:
+          - action: switch.turn_off
+            target:
+              entity_id: !input valve_switch
+
+      # The water is ready (valve just opened): run the optional actions
+      - conditions:
+          - condition: trigger
+            id: valve_opened
+        sequence: !input ready_actions
+
+      # Start: only the user's start trigger reaches here. It has no built-in
+      # id, so the "not one of our ids" guard is true only for it. Built-in
+      # triggers that fail their guards above match nothing and do nothing,
+      # so they can no longer fall through and start the pump.
+      - conditions:
+          - condition: not
+            conditions:
+              - condition: trigger
+                id:
+                  - open_temp
+                  - open_power
+                  - pump_done
+                  - pump_safety
+                  - close_temp
+                  - valve_safety
+                  - valve_opened
+                  - pump_started
+          - condition: state
+            entity_id: !input pump_switch
+            state: "off"
+        sequence:
+          - if:
+              - condition: numeric_state
+                entity_id: !input temp_probe
+                above: !input activate_temp
+            then:
+              # The line is already hot, so the pump's thermostat would never
+              # spin the motor: skip it and go straight to the house heater
+              - action: switch.turn_on
+                target:
+                  entity_id: !input valve_switch
+            else:
+              - action: switch.turn_on
+                target:
+                  entity_id: !input pump_switch
