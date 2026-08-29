@@ -47,6 +47,8 @@ Each sensor group is **disabled by default** (except Soil Moisture) so you can m
 
 7. *(Optional)* Expand **Repeat Alerts** to configure how often you get reminded while a condition persists
 
+8. *(Optional)* Expand **RGB LED Indicator** and pick a mode to light the sensor's onboard LED when the plant needs water
+
 ---
 
 ## Input Reference
@@ -75,6 +77,26 @@ Each sensor group is **disabled by default** (except Soil Moisture) so you can m
 | Repeat — Minutes | Minute offset for repeat schedule | At :01 |
 
 Set **Hours** to `Never (disable repeat)` to receive only one alert per threshold crossing.
+
+### RGB LED Indicator
+
+Lights the PLT-1's onboard RGB LED when soil moisture drops below your minimum, so a glance at the plant tells you it needs water.
+
+| Input | Description | Default |
+|---|---|---|
+| LED Mode | `Off`, `Flash On Alert`, or `Stay On Until Watered` | `Off` |
+| LED Color | Color shown when the plant needs water | Blue |
+| LED Brightness | Brightness while the alert is showing | 60% |
+| LED Effect | `Solid`, `Slow Pulse`, or `Fast Pulse` | `Slow Pulse` |
+| Flash Duration | Seconds the LED stays lit in `Flash On Alert` mode | 10 |
+
+**Deep sleep matters here.** The PLT-1 firmware turns the LED off every time the device goes to sleep, so the LED is only lit while the device is awake:
+
+- On a **wired PLT-1**, the `Prevent Sleep` switch is on out of the box, so the device stays awake and `Stay On Until Watered` holds the LED until moisture recovers.
+- On a **battery PLT-1B**, use `Flash On Alert`. The alert fires the moment the device wakes and reports, so the flash lands inside the wake window. `Stay On Until Watered` will relight the LED at each reading, but it goes dark for the sleep interval in between.
+- The blueprint never changes the `Prevent Sleep` switch. If you want a PLT-1B to hold the LED, you have to turn that switch on yourself and accept the battery cost.
+
+With `Stay On Until Watered`, the LED is switched off once soil moisture climbs back above your minimum.
 
 ### Per-Sensor Inputs
 

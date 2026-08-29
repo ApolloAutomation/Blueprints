@@ -30,6 +30,9 @@ blueprint:
     4️⃣ Enter your calibration voltages in the Calibration section
 
     5️⃣ Enable each sensor group you want to monitor and adjust thresholds
+
+    6️⃣ (Optional) Turn on the RGB LED indicator so the onboard LED lights up
+    when the plant needs water
   domain: automation
   homeassistant:
     min_version: "2024.6.0"
@@ -148,6 +151,93 @@ blueprint:
           default: []
           selector:
             action:
+
+    # ── RGB LED Indicator (collapsed) ────────────────────────────────────────────
+    led_settings:
+      name: RGB LED Indicator
+      icon: mdi:led-on
+      collapsed: true
+      description: >
+        Light up the onboard RGB LED when soil moisture drops below your
+        minimum, so you can see that the plant needs water without checking
+        your phone.
+      input:
+        led_mode:
+          name: LED Mode
+          description: >
+            **Off**: the blueprint leaves the LED alone.
+
+            **Flash On Alert**: the LED lights up for a few seconds each time a
+            low moisture alert fires, then turns itself off. Best choice for the
+            battery-powered PLT-1B.
+
+            **Stay On Until Watered**: the LED stays lit until soil moisture
+            climbs back above your minimum. The LED can only be lit while the
+            device is awake, so this suits a wired PLT-1 with Prevent Sleep
+            turned on. On a sleeping device the firmware switches the LED off
+            every time it goes to sleep, and the repeat schedule lights it again
+            at the next reading.
+          default: "off"
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: "Off"
+                  value: "off"
+                - label: "Flash On Alert"
+                  value: "flash"
+                - label: "Stay On Until Watered"
+                  value: "hold"
+
+        led_color:
+          name: LED Color
+          description: Color the LED shows when the plant needs water.
+          default: [0, 120, 255]
+          selector:
+            color_rgb:
+
+        led_brightness:
+          name: LED Brightness
+          description: Brightness of the LED while the alert is showing.
+          default: 60
+          selector:
+            number:
+              min: 1
+              max: 100
+              unit_of_measurement: "%"
+              step: 1
+              mode: slider
+
+        led_effect:
+          name: LED Effect
+          description: >
+            A pulsing LED is easier to spot across a room than a solid one.
+            Slow Pulse and Fast Pulse are built into the PLT-1 firmware.
+          default: "Slow Pulse"
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: "Solid"
+                  value: "None"
+                - label: "Slow Pulse"
+                  value: "Slow Pulse"
+                - label: "Fast Pulse"
+                  value: "Fast Pulse"
+
+        led_flash_duration:
+          name: Flash Duration (seconds)
+          description: >
+            How long the LED stays lit in Flash On Alert mode. Ignored by the
+            other modes.
+          default: 10
+          selector:
+            number:
+              min: 1
+              max: 120
+              unit_of_measurement: seconds
+              step: 1
+              mode: box
 
     # ── Repeat / Timing (collapsed) ──────────────────────────────────────────────
     time_settings:
@@ -500,6 +590,8 @@ trigger_variables:
     {{ entities | select('search', 'ltr390uvindex') | list | first | default('') }}
   battery_entity: >-
     {{ entities | select('search', 'batt_pct') | list | first | default('') }}
+  rgb_light_entity: >-
+    {{ device_entities(device_id) | select('match', 'light\..*') | list | first | default('') }}
 
   # Enable flags
   soil_moisture_enabled: !input soil_moisture_enabled
@@ -523,6 +615,13 @@ trigger_variables:
   max_light: !input max_light
   max_uv: !input max_uv
   min_battery: !input min_battery
+
+  # RGB LED
+  led_mode: !input led_mode
+  led_color: !input led_color
+  led_brightness: !input led_brightness
+  led_effect: !input led_effect
+  led_flash_duration: !input led_flash_duration
 
   # Notification
   notify_device: !input notify_device
@@ -581,6 +680,13 @@ triggers:
          and is_number(states(soil_moisture_entity))
          and states(soil_moisture_entity) | float > max_soil_moisture }}
     id: soil_moisture_max
+
+  - trigger: template
+    value_template: >-
+      {{ led_mode == 'hold' and soil_moisture_enabled and soil_moisture_entity != ''
+         and is_number(states(soil_moisture_entity))
+         and states(soil_moisture_entity) | float >= min_soil_moisture }}
+    id: soil_moisture_ok
 
   # Soil temperature
   - trigger: template
@@ -705,6 +811,30 @@ action:
               Soil moisture is {{ states(soil_moisture_entity) | float(0) | round(1) }}%,
               below the minimum of {{ min_soil_moisture }}%. Time to water!
             data: "{{ device_message_data }}"
+      - alias: Light the RGB LED
+        if:
+          - condition: template
+            value_template: "{{ led_mode != 'off' and rgb_light_entity != '' }}"
+        then:
+          # The device may be asleep, so a failed call must not skip the custom action
+          - action: light.turn_on
+            continue_on_error: true
+            target:
+              entity_id: "{{ rgb_light_entity }}"
+            data:
+              rgb_color: "{{ led_color }}"
+              brightness_pct: "{{ led_brightness }}"
+              effect: "{{ led_effect }}"
+          - if:
+              - condition: template
+                value_template: "{{ led_mode == 'flash' }}"
+            then:
+              - delay:
+                  seconds: "{{ led_flash_duration }}"
+              - action: light.turn_off
+                continue_on_error: true
+                target:
+                  entity_id: "{{ rgb_light_entity }}"
       - choose: []
         default: !input custom_action
 
@@ -732,6 +862,23 @@ action:
             data: "{{ device_message_data }}"
       - choose: []
         default: !input custom_action
+
+  # RGB LED: clear once the plant has been watered
+  - alias: RGB LED Clear
+    if:
+      - condition: template
+        value_template: >-
+          {{ led_mode == 'hold' and rgb_light_entity != ''
+             and soil_moisture_enabled and soil_moisture_entity != ''
+             and is_number(states(soil_moisture_entity))
+             and states(soil_moisture_entity) | float >= min_soil_moisture
+             and states(rgb_light_entity) == 'on'
+             and trigger.id in ['time', 'soil_moisture_ok'] }}
+    then:
+      - action: light.turn_off
+        continue_on_error: true
+        target:
+          entity_id: "{{ rgb_light_entity }}"
 
   # Soil Temperature — Low
   - alias: Soil Temperature Low Alert
