@@ -112,9 +112,9 @@ Lights the PLT-1's onboard RGB LED when soil moisture drops below your minimum, 
 
 **Deep sleep matters here.** The PLT-1 firmware turns the LED off every time the device goes to sleep, so the LED is only lit while the device is awake:
 
-- On a **wired PLT-1**, the `Prevent Sleep` switch is on out of the box, so the device stays awake and `Stay On Until Watered` holds the LED until moisture recovers.
-- On a **battery PLT-1B**, use `Flash On Alert`. When a reading first crosses your threshold the alert fires while the device is still awake, so the flash lands inside the wake window. `Stay On Until Watered` cannot hold the LED through sleep: the firmware switches the LED off as the device goes back to sleep, and the repeat schedule can only relight it if a repeat happens to land inside the short wake window. Expect the LED to stay dark most of the time on a sleeping device.
-- The blueprint never changes the `Prevent Sleep` switch. If you want a PLT-1B to hold the LED, you have to turn that switch on yourself and accept the battery cost.
+- **Both the wired PLT-1 and the battery PLT-1B ship with `Prevent Sleep` turned on**, so out of the box the device stays awake and `Stay On Until Watered` holds the LED until moisture recovers on either model.
+- If you turn `Prevent Sleep` off to extend PLT-1B battery life, the device deep sleeps and the firmware switches the LED off each time it goes down. Use `Flash On Alert` then, because the alert fires while the device is still awake and reporting, so the flash lands. `Stay On Until Watered` looks broken on a sleeping device, since the LED only relights while the device happens to be awake.
+- The blueprint never changes the `Prevent Sleep` switch in either direction.
 
 With `Stay On Until Watered`, the LED is switched off once soil moisture climbs back above your minimum.
 

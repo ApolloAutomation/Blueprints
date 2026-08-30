@@ -168,15 +168,15 @@ blueprint:
             **Off**: the blueprint leaves the LED alone.
 
             **Flash On Alert**: the LED lights up for a few seconds each time a
-            low moisture alert fires, then turns itself off. Best choice for the
-            battery-powered PLT-1B.
+            low moisture alert fires, then turns itself off. Use this if you
+            have turned Prevent Sleep off to extend battery life.
 
             **Stay On Until Watered**: the LED stays lit until soil moisture
-            climbs back above your minimum. The LED can only be lit while the
-            device is awake, so this suits a wired PLT-1 with Prevent Sleep
-            turned on. On a sleeping device the firmware switches the LED off
-            every time it goes to sleep, and it only relights if a repeat
-            happens to land while the device is awake.
+            climbs back above your minimum. Both the PLT-1 and the PLT-1B ship
+            with Prevent Sleep turned on, so this works out of the box on
+            either model. If you turn Prevent Sleep off, the firmware switches
+            the LED off every time the device sleeps, and it only relights
+            while the device is awake.
           default: "off"
           selector:
             select:
