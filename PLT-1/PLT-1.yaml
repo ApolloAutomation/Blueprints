@@ -1025,7 +1025,8 @@ action:
       - condition: template
         value_template: >-
           {{ breaches | count > 0
-             and (trigger.id | default('manual')) != 'led_sync' }}
+             and (trigger.id | default('manual'))
+                 not in ['led_sync', 'soil_moisture_ok'] }}
     then:
       - if:
           - condition: template
