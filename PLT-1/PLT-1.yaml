@@ -35,7 +35,7 @@ blueprint:
     when the plant needs water
   domain: automation
   homeassistant:
-    min_version: "2024.6.0"
+    min_version: "2024.10.0"
   input:
 
     # ── Device ─────────────────────────────────────────────────────────────────
@@ -175,8 +175,8 @@ blueprint:
             climbs back above your minimum. The LED can only be lit while the
             device is awake, so this suits a wired PLT-1 with Prevent Sleep
             turned on. On a sleeping device the firmware switches the LED off
-            every time it goes to sleep, and the repeat schedule lights it again
-            at the next reading.
+            every time it goes to sleep, and it only relights if a repeat
+            happens to land while the device is awake.
           default: "off"
           selector:
             select:
@@ -581,15 +581,15 @@ trigger_variables:
   soil_temp_entity: >-
     {{ entities | select('search', 'soil_temperature') | list | first | default('') }}
   air_temp_entity: >-
-    {{ entities | select('search', 'aht_temperature') | list | first | default('') }}
+    {{ entities | select('search', 'air_temperature') | list | first | default('') }}
   air_humidity_entity: >-
-    {{ entities | select('search', 'aht_humidity') | list | first | default('') }}
+    {{ entities | select('search', 'air_humidity') | list | first | default('') }}
   light_entity: >-
-    {{ entities | select('search', 'ltr390light') | list | first | default('') }}
+    {{ entities | select('search', 'ltr390_light') | list | first | default('') }}
   uv_entity: >-
-    {{ entities | select('search', 'ltr390uvindex') | list | first | default('') }}
+    {{ entities | select('search', 'ltr390_uv_index') | list | first | default('') }}
   battery_entity: >-
-    {{ entities | select('search', 'batt_pct') | list | first | default('') }}
+    {{ entities | select('search', 'battery_level') | list | first | default('') }}
   rgb_light_entity: >-
     {{ device_entities(device_id) | select('match', 'light\..*') | list | first | default('') }}
 
@@ -764,26 +764,41 @@ triggers:
          and states(battery_entity) | float < min_battery }}
     id: battery_min
 
+  # LED state sync. The template triggers above only fire on a false-to-true
+  # transition, so a threshold that is already breached when the automation
+  # loads would leave the LED dark until the next repeat. These triggers
+  # re-check the LED (and only the LED) after a restart or reload.
+  - trigger: homeassistant
+    event: start
+    id: led_sync
+  - trigger: event
+    event_type: automation_reloaded
+    id: led_sync
+
 conditions:
   - condition: template
     value_template: "{{ not disable_repeat or trigger.id != 'time' }}"
 
 action:
-  # Apply calibration voltages to device
+  # Apply calibration voltages to device. Skipped for led_sync, which fires on
+  # every automation reload system-wide. A sleeping device rejects these calls,
+  # so they must never abort the rest of the run.
   - if:
       - condition: template
-        value_template: "{{ dry_voltage_entity != '' }}"
+        value_template: "{{ dry_voltage_entity != '' and trigger.id != 'led_sync' }}"
     then:
       - action: number.set_value
+        continue_on_error: true
         target:
           entity_id: "{{ dry_voltage_entity }}"
         data:
           value: "{{ dry_voltage_value }}"
   - if:
       - condition: template
-        value_template: "{{ wet_voltage_entity != '' }}"
+        value_template: "{{ wet_voltage_entity != '' and trigger.id != 'led_sync' }}"
     then:
       - action: number.set_value
+        continue_on_error: true
         target:
           entity_id: "{{ wet_voltage_entity }}"
         data:
@@ -803,28 +818,29 @@ action:
           - condition: template
             value_template: "{{ notify_device is not none and notify_device != '' }}"
         then:
-          - device_id: !input notify_device
-            domain: mobile_app
-            type: notify
-            title: "{{ plant_name }} — Soil Moisture Low"
-            message: >-
-              Soil moisture is {{ states(soil_moisture_entity) | float(0) | round(1) }}%,
-              below the minimum of {{ min_soil_moisture }}%. Time to water!
-            data: "{{ device_message_data }}"
+          - action: "notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}"
+            continue_on_error: true
+            data:
+              title: "{{ plant_name }} — Soil Moisture Low"
+              message: >-
+                Soil moisture is {{ states(soil_moisture_entity) | float(0) | round(1) }}%,
+                below the minimum of {{ min_soil_moisture }}%. Time to water!
+              data: "{{ device_message_data }}"
       - alias: Light the RGB LED
         if:
           - condition: template
             value_template: "{{ led_mode != 'off' and rgb_light_entity != '' }}"
         then:
-          # The device may be asleep, so a failed call must not skip the custom action
+          # The device may be asleep, so a failed call must not skip the custom action.
+          # The data dict is rendered as one template so the Solid option's
+          # 'None' effect survives as a string instead of becoming Python None.
           - action: light.turn_on
             continue_on_error: true
             target:
               entity_id: "{{ rgb_light_entity }}"
-            data:
-              rgb_color: "{{ led_color }}"
-              brightness_pct: "{{ led_brightness }}"
-              effect: "{{ led_effect }}"
+            data: >-
+              {{ dict(rgb_color=led_color, brightness_pct=led_brightness,
+                      effect=led_effect) }}
           - if:
               - condition: template
                 value_template: "{{ led_mode == 'flash' }}"
@@ -852,14 +868,14 @@ action:
           - condition: template
             value_template: "{{ notify_device is not none and notify_device != '' }}"
         then:
-          - device_id: !input notify_device
-            domain: mobile_app
-            type: notify
-            title: "{{ plant_name }} — Soil Moisture High"
-            message: >-
-              Soil moisture is {{ states(soil_moisture_entity) | float(0) | round(1) }}%,
-              above the maximum of {{ max_soil_moisture }}%. Risk of overwatering!
-            data: "{{ device_message_data }}"
+          - action: "notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}"
+            continue_on_error: true
+            data:
+              title: "{{ plant_name }} — Soil Moisture High"
+              message: >-
+                Soil moisture is {{ states(soil_moisture_entity) | float(0) | round(1) }}%,
+                above the maximum of {{ max_soil_moisture }}%. Risk of overwatering!
+              data: "{{ device_message_data }}"
       - choose: []
         default: !input custom_action
 
@@ -873,12 +889,59 @@ action:
              and is_number(states(soil_moisture_entity))
              and states(soil_moisture_entity) | float >= min_soil_moisture
              and states(rgb_light_entity) == 'on'
-             and trigger.id in ['time', 'soil_moisture_ok'] }}
+             and trigger.id in ['time', 'soil_moisture_ok', 'led_sync'] }}
     then:
       - action: light.turn_off
         continue_on_error: true
         target:
           entity_id: "{{ rgb_light_entity }}"
+
+  # RGB LED: restore the correct LED state after a restart or reload. The
+  # template triggers only fire on a transition, so without this a threshold
+  # that is already breached when the automation loads never lights the LED.
+  # Notifications and the custom action deliberately do not run here.
+  - alias: RGB LED Sync
+    if:
+      - condition: template
+        value_template: >-
+          {{ trigger.id == 'led_sync'
+             and led_mode != 'off' and rgb_light_entity != ''
+             and soil_moisture_enabled and soil_moisture_entity != '' }}
+    then:
+      - if:
+          - condition: template
+            value_template: >-
+              {{ is_number(states(soil_moisture_entity))
+                 and states(soil_moisture_entity) | float < min_soil_moisture }}
+        then:
+          - action: light.turn_on
+            continue_on_error: true
+            target:
+              entity_id: "{{ rgb_light_entity }}"
+            data: >-
+              {{ dict(rgb_color=led_color, brightness_pct=led_brightness,
+                      effect=led_effect) }}
+          - if:
+              - condition: template
+                value_template: "{{ led_mode == 'flash' }}"
+            then:
+              - delay:
+                  seconds: "{{ led_flash_duration }}"
+              - action: light.turn_off
+                continue_on_error: true
+                target:
+                  entity_id: "{{ rgb_light_entity }}"
+        else:
+          # A reload can interrupt a flash between turn_on and turn_off and
+          # leave the LED stuck on. Clear it if the plant no longer needs water.
+          - if:
+              - condition: template
+                value_template: "{{ led_mode == 'flash' and states(rgb_light_entity) == 'on' }}"
+            then:
+              - action: light.turn_off
+                continue_on_error: true
+                target:
+                  entity_id: "{{ rgb_light_entity }}"
 
   # Soil Temperature — Low
   - alias: Soil Temperature Low Alert
@@ -894,15 +957,15 @@ action:
           - condition: template
             value_template: "{{ notify_device is not none and notify_device != '' }}"
         then:
-          - device_id: !input notify_device
-            domain: mobile_app
-            type: notify
-            title: "{{ plant_name }} — Soil Too Cold"
-            message: >-
-              Soil temperature is {{ states(soil_temp_entity) | float(0) | round(1) }}{{ state_attr(soil_temp_entity, 'unit_of_measurement') }},
-              below the minimum of {{ min_soil_temp }}{{ state_attr(soil_temp_entity, 'unit_of_measurement') }}.
-              Roots may be too cold!
-            data: "{{ device_message_data }}"
+          - action: "notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}"
+            continue_on_error: true
+            data:
+              title: "{{ plant_name }} — Soil Too Cold"
+              message: >-
+                Soil temperature is {{ states(soil_temp_entity) | float(0) | round(1) }}{{ state_attr(soil_temp_entity, 'unit_of_measurement') }},
+                below the minimum of {{ min_soil_temp }}{{ state_attr(soil_temp_entity, 'unit_of_measurement') }}.
+                Roots may be too cold!
+              data: "{{ device_message_data }}"
       - choose: []
         default: !input custom_action
 
@@ -920,15 +983,15 @@ action:
           - condition: template
             value_template: "{{ notify_device is not none and notify_device != '' }}"
         then:
-          - device_id: !input notify_device
-            domain: mobile_app
-            type: notify
-            title: "{{ plant_name }} — Soil Too Hot"
-            message: >-
-              Soil temperature is {{ states(soil_temp_entity) | float(0) | round(1) }}{{ state_attr(soil_temp_entity, 'unit_of_measurement') }},
-              above the maximum of {{ max_soil_temp }}{{ state_attr(soil_temp_entity, 'unit_of_measurement') }}.
-              Roots may overheat!
-            data: "{{ device_message_data }}"
+          - action: "notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}"
+            continue_on_error: true
+            data:
+              title: "{{ plant_name }} — Soil Too Hot"
+              message: >-
+                Soil temperature is {{ states(soil_temp_entity) | float(0) | round(1) }}{{ state_attr(soil_temp_entity, 'unit_of_measurement') }},
+                above the maximum of {{ max_soil_temp }}{{ state_attr(soil_temp_entity, 'unit_of_measurement') }}.
+                Roots may overheat!
+              data: "{{ device_message_data }}"
       - choose: []
         default: !input custom_action
 
@@ -946,15 +1009,15 @@ action:
           - condition: template
             value_template: "{{ notify_device is not none and notify_device != '' }}"
         then:
-          - device_id: !input notify_device
-            domain: mobile_app
-            type: notify
-            title: "{{ plant_name }} — Air Too Cold"
-            message: >-
-              Air temperature is {{ states(air_temp_entity) | float(0) | round(1) }}{{ state_attr(air_temp_entity, 'unit_of_measurement') }},
-              below the minimum of {{ min_air_temp }}{{ state_attr(air_temp_entity, 'unit_of_measurement') }}.
-              Environment may be too cold!
-            data: "{{ device_message_data }}"
+          - action: "notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}"
+            continue_on_error: true
+            data:
+              title: "{{ plant_name }} — Air Too Cold"
+              message: >-
+                Air temperature is {{ states(air_temp_entity) | float(0) | round(1) }}{{ state_attr(air_temp_entity, 'unit_of_measurement') }},
+                below the minimum of {{ min_air_temp }}{{ state_attr(air_temp_entity, 'unit_of_measurement') }}.
+                Environment may be too cold!
+              data: "{{ device_message_data }}"
       - choose: []
         default: !input custom_action
 
@@ -972,15 +1035,15 @@ action:
           - condition: template
             value_template: "{{ notify_device is not none and notify_device != '' }}"
         then:
-          - device_id: !input notify_device
-            domain: mobile_app
-            type: notify
-            title: "{{ plant_name }} — Air Too Hot"
-            message: >-
-              Air temperature is {{ states(air_temp_entity) | float(0) | round(1) }}{{ state_attr(air_temp_entity, 'unit_of_measurement') }},
-              above the maximum of {{ max_air_temp }}{{ state_attr(air_temp_entity, 'unit_of_measurement') }}.
-              Environment may be too hot!
-            data: "{{ device_message_data }}"
+          - action: "notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}"
+            continue_on_error: true
+            data:
+              title: "{{ plant_name }} — Air Too Hot"
+              message: >-
+                Air temperature is {{ states(air_temp_entity) | float(0) | round(1) }}{{ state_attr(air_temp_entity, 'unit_of_measurement') }},
+                above the maximum of {{ max_air_temp }}{{ state_attr(air_temp_entity, 'unit_of_measurement') }}.
+                Environment may be too hot!
+              data: "{{ device_message_data }}"
       - choose: []
         default: !input custom_action
 
@@ -998,15 +1061,15 @@ action:
           - condition: template
             value_template: "{{ notify_device is not none and notify_device != '' }}"
         then:
-          - device_id: !input notify_device
-            domain: mobile_app
-            type: notify
-            title: "{{ plant_name }} — Air Too Dry"
-            message: >-
-              Air humidity is {{ states(air_humidity_entity) | float(0) | round(1) }}%,
-              below the minimum of {{ min_air_humidity }}%.
-              Dry air can stress your plant!
-            data: "{{ device_message_data }}"
+          - action: "notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}"
+            continue_on_error: true
+            data:
+              title: "{{ plant_name }} — Air Too Dry"
+              message: >-
+                Air humidity is {{ states(air_humidity_entity) | float(0) | round(1) }}%,
+                below the minimum of {{ min_air_humidity }}%.
+                Dry air can stress your plant!
+              data: "{{ device_message_data }}"
       - choose: []
         default: !input custom_action
 
@@ -1024,15 +1087,15 @@ action:
           - condition: template
             value_template: "{{ notify_device is not none and notify_device != '' }}"
         then:
-          - device_id: !input notify_device
-            domain: mobile_app
-            type: notify
-            title: "{{ plant_name }} — Humidity Too High"
-            message: >-
-              Air humidity is {{ states(air_humidity_entity) | float(0) | round(1) }}%,
-              above the maximum of {{ max_air_humidity }}%.
-              Risk of mold or rot!
-            data: "{{ device_message_data }}"
+          - action: "notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}"
+            continue_on_error: true
+            data:
+              title: "{{ plant_name }} — Humidity Too High"
+              message: >-
+                Air humidity is {{ states(air_humidity_entity) | float(0) | round(1) }}%,
+                above the maximum of {{ max_air_humidity }}%.
+                Risk of mold or rot!
+              data: "{{ device_message_data }}"
       - choose: []
         default: !input custom_action
 
@@ -1050,15 +1113,15 @@ action:
           - condition: template
             value_template: "{{ notify_device is not none and notify_device != '' }}"
         then:
-          - device_id: !input notify_device
-            domain: mobile_app
-            type: notify
-            title: "{{ plant_name }} — Not Enough Light"
-            message: >-
-              Light level is {{ states(light_entity) | float(0) | round(0) }} lux,
-              below the minimum of {{ min_light }} lux.
-              Move to a brighter spot!
-            data: "{{ device_message_data }}"
+          - action: "notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}"
+            continue_on_error: true
+            data:
+              title: "{{ plant_name }} — Not Enough Light"
+              message: >-
+                Light level is {{ states(light_entity) | float(0) | round(0) }} lux,
+                below the minimum of {{ min_light }} lux.
+                Move to a brighter spot!
+              data: "{{ device_message_data }}"
       - choose: []
         default: !input custom_action
 
@@ -1076,15 +1139,15 @@ action:
           - condition: template
             value_template: "{{ notify_device is not none and notify_device != '' }}"
         then:
-          - device_id: !input notify_device
-            domain: mobile_app
-            type: notify
-            title: "{{ plant_name }} — Too Much Light"
-            message: >-
-              Light level is {{ states(light_entity) | float(0) | round(0) }} lux,
-              above the maximum of {{ max_light }} lux.
-              Direct sun may scorch leaves!
-            data: "{{ device_message_data }}"
+          - action: "notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}"
+            continue_on_error: true
+            data:
+              title: "{{ plant_name }} — Too Much Light"
+              message: >-
+                Light level is {{ states(light_entity) | float(0) | round(0) }} lux,
+                above the maximum of {{ max_light }} lux.
+                Direct sun may scorch leaves!
+              data: "{{ device_message_data }}"
       - choose: []
         default: !input custom_action
 
@@ -1102,15 +1165,15 @@ action:
           - condition: template
             value_template: "{{ notify_device is not none and notify_device != '' }}"
         then:
-          - device_id: !input notify_device
-            domain: mobile_app
-            type: notify
-            title: "{{ plant_name }} — UV Index High"
-            message: >-
-              UV index is {{ states(uv_entity) | float(0) | round(1) }},
-              above the maximum of {{ max_uv }}.
-              Excessive UV exposure!
-            data: "{{ device_message_data }}"
+          - action: "notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}"
+            continue_on_error: true
+            data:
+              title: "{{ plant_name }} — UV Index High"
+              message: >-
+                UV index is {{ states(uv_entity) | float(0) | round(1) }},
+                above the maximum of {{ max_uv }}.
+                Excessive UV exposure!
+              data: "{{ device_message_data }}"
       - choose: []
         default: !input custom_action
 
@@ -1128,15 +1191,15 @@ action:
           - condition: template
             value_template: "{{ notify_device is not none and notify_device != '' }}"
         then:
-          - device_id: !input notify_device
-            domain: mobile_app
-            type: notify
-            title: "{{ plant_name }} — Sensor Battery Low"
-            message: >-
-              Sensor battery is {{ states(battery_entity) | float(0) | round(0) }}%,
-              below the minimum of {{ min_battery }}%.
-              Please recharge!
-            data: "{{ device_message_data }}"
+          - action: "notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}"
+            continue_on_error: true
+            data:
+              title: "{{ plant_name }} — Sensor Battery Low"
+              message: >-
+                Sensor battery is {{ states(battery_entity) | float(0) | round(0) }}%,
+                below the minimum of {{ min_battery }}%.
+                Please recharge!
+              data: "{{ device_message_data }}"
       - choose: []
         default: !input custom_action
 

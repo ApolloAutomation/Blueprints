@@ -25,7 +25,7 @@ Each sensor group is **disabled by default** (except Soil Moisture) so you can m
 ## Requirements
 
 - **Apollo Automation PLT-1 or PLT-1B** connected to Home Assistant via ESPHome
-- Home Assistant **2024.6.0** or newer
+- Home Assistant **2024.10.0** or newer
 - Home Assistant Companion App installed on your phone *(for mobile push notifications)*
 
 ---
@@ -43,11 +43,19 @@ Each sensor group is **disabled by default** (except Soil Moisture) so you can m
 
 5. Select your **mobile device** for push notifications (optional — you can use a Custom Action instead)
 
-6. Expand the sensor groups you want to monitor, enable them, and adjust the thresholds to suit your plant
+6. Expand **Calibration** and enter your sensor's dry and wet voltage readings.
+   To get them: temporarily enable the **Soil ADC** diagnostic entity on your device,
+   record the voltage with the probe dry in air, then again with the probe submerged
+   in water up to the Apollo label, and disable Soil ADC again. See the
+   [calibration guide](https://wiki.apolloautomation.com/products/general/calibrating-and-updating/calibrate-plt1).
+   The automation writes these values to the device on every alert and repeat run,
+   so they survive factory resets and firmware updates.
 
-7. *(Optional)* Expand **Repeat Alerts** to configure how often you get reminded while a condition persists
+7. Expand the sensor groups you want to monitor, enable them, and adjust the thresholds to suit your plant
 
-8. *(Optional)* Expand **RGB LED Indicator** and pick a mode to light the sensor's onboard LED when the plant needs water
+8. *(Optional)* Expand **Repeat Alerts** to configure how often you get reminded while a condition persists
+
+9. *(Optional)* Expand **RGB LED Indicator** and pick a mode to light the sensor's onboard LED when the plant needs water
 
 ---
 
@@ -73,10 +81,22 @@ Each sensor group is **disabled by default** (except Soil Moisture) so you can m
 
 | Input | Description | Default |
 |---|---|---|
+| Disable Repeat Alerts | Fire only once per threshold crossing, never on a schedule | Off |
 | Repeat — Hours | How often to re-alert while condition persists | Every Hour |
 | Repeat — Minutes | Minute offset for repeat schedule | At :01 |
 
-Set **Hours** to `Never (disable repeat)` to receive only one alert per threshold crossing.
+Turn on **Disable Repeat Alerts** to receive only one alert per threshold crossing.
+
+### Calibration
+
+Enter the soil probe's calibration voltages here. The automation writes them to the
+device's `Dry Voltage` and `100% Water Voltage` entities on every alert and repeat
+run, so a factory reset or firmware update cannot silently wipe your calibration.
+
+| Input | Description | Default |
+|---|---|---|
+| Dry Voltage (V) | Soil ADC reading with the probe dry in air | 2.77 |
+| Wet Voltage (V) | Soil ADC reading with the probe submerged up to the Apollo label | 1.47 |
 
 ### RGB LED Indicator
 
@@ -93,10 +113,12 @@ Lights the PLT-1's onboard RGB LED when soil moisture drops below your minimum, 
 **Deep sleep matters here.** The PLT-1 firmware turns the LED off every time the device goes to sleep, so the LED is only lit while the device is awake:
 
 - On a **wired PLT-1**, the `Prevent Sleep` switch is on out of the box, so the device stays awake and `Stay On Until Watered` holds the LED until moisture recovers.
-- On a **battery PLT-1B**, use `Flash On Alert`. The alert fires the moment the device wakes and reports, so the flash lands inside the wake window. `Stay On Until Watered` will relight the LED at each reading, but it goes dark for the sleep interval in between.
+- On a **battery PLT-1B**, use `Flash On Alert`. When a reading first crosses your threshold the alert fires while the device is still awake, so the flash lands inside the wake window. `Stay On Until Watered` cannot hold the LED through sleep: the firmware switches the LED off as the device goes back to sleep, and the repeat schedule can only relight it if a repeat happens to land inside the short wake window. Expect the LED to stay dark most of the time on a sleeping device.
 - The blueprint never changes the `Prevent Sleep` switch. If you want a PLT-1B to hold the LED, you have to turn that switch on yourself and accept the battery cost.
 
 With `Stay On Until Watered`, the LED is switched off once soil moisture climbs back above your minimum.
+
+After a Home Assistant restart or an automation reload, the blueprint re-checks soil moisture and restores the LED state, so a threshold that was already breached before the restart does not leave the LED dark until the next repeat.
 
 ### Per-Sensor Inputs
 
@@ -107,13 +129,12 @@ Each sensor group (Soil Moisture, Soil Temperature, Air Temperature, Air Humidit
 | Enable Alerts | Toggle — enable or disable this sensor group |
 | Minimum threshold | Alert when value drops below this level |
 | Maximum threshold | Alert when value rises above this level *(where applicable)* |
-| Alert Delay (minutes) | How long the condition must persist before firing — prevents false alerts |
 
 ---
 
 ## Alert Behaviour
 
-- **Immediate alert**: fires as soon as the threshold is exceeded for the configured delay duration
+- **Immediate alert**: fires as soon as a sensor reading crosses the threshold
 - **Repeat alert**: the repeat schedule re-sends the alert while the condition persists
 - **Deduplication**: the automation is set to `parallel` mode, so multiple sensors can alert simultaneously without blocking each other
 
