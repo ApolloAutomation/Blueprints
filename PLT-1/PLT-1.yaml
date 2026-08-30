@@ -908,36 +908,30 @@ action:
              and led_mode != 'off' and rgb_light_entity != ''
              and soil_moisture_enabled and soil_moisture_entity != '' }}
     then:
-      - if:
-          - condition: template
-            value_template: >-
-              {{ is_number(states(soil_moisture_entity))
-                 and states(soil_moisture_entity) | float < min_soil_moisture }}
-        then:
-          - action: light.turn_on
-            continue_on_error: true
-            target:
-              entity_id: "{{ rgb_light_entity }}"
-            data: >-
-              {{ dict(rgb_color=led_color, brightness_pct=led_brightness,
-                      effect=led_effect) }}
-          - if:
+      - choose:
+          # Hold mode is a state indicator, so it must relight to match reality
+          - conditions:
               - condition: template
-                value_template: "{{ led_mode == 'flash' }}"
-            then:
-              - delay:
-                  seconds: "{{ led_flash_duration }}"
-              - action: light.turn_off
+                value_template: >-
+                  {{ led_mode == 'hold'
+                     and is_number(states(soil_moisture_entity))
+                     and states(soil_moisture_entity) | float < min_soil_moisture }}
+            sequence:
+              - action: light.turn_on
                 continue_on_error: true
                 target:
                   entity_id: "{{ rgb_light_entity }}"
-        else:
-          # A reload can interrupt a flash between turn_on and turn_off and
-          # leave the LED stuck on. Clear it if the plant no longer needs water.
-          - if:
+                data: >-
+                  {{ dict(rgb_color=led_color, brightness_pct=led_brightness,
+                          effect=led_effect) }}
+          # A sync must never start a flash: automation_reloaded fires on every
+          # automation save system-wide. An LED on in flash mode is a leftover
+          # from an interrupted flash, so clear it.
+          - conditions:
               - condition: template
-                value_template: "{{ led_mode == 'flash' and states(rgb_light_entity) == 'on' }}"
-            then:
+                value_template: >-
+                  {{ led_mode == 'flash' and states(rgb_light_entity) == 'on' }}
+            sequence:
               - action: light.turn_off
                 continue_on_error: true
                 target:

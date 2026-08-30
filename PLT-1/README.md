@@ -118,7 +118,7 @@ Lights the PLT-1's onboard RGB LED when soil moisture drops below your minimum, 
 
 With `Stay On Until Watered`, the LED is switched off once soil moisture climbs back above your minimum.
 
-After a Home Assistant restart or an automation reload, the blueprint re-checks soil moisture and restores the LED state, so a threshold that was already breached before the restart does not leave the LED dark until the next repeat.
+After a Home Assistant restart or an automation reload, the blueprint re-checks soil moisture and restores the LED in `Stay On Until Watered` mode, so a threshold that was already breached beforehand does not leave the LED dark until the next repeat. `Flash On Alert` is never re-flashed by a restart, because a flash marks the moment an alert fires rather than an ongoing state.
 
 ### Per-Sensor Inputs
 
