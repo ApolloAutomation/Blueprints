@@ -135,8 +135,9 @@ Each sensor group (Soil Moisture, Soil Temperature, Air Temperature, Air Humidit
 ## Alert Behaviour
 
 - **Immediate alert**: fires as soon as a sensor reading crosses the threshold
-- **Repeat alert**: the repeat schedule re-sends the alert while the condition persists
-- **Deduplication**: the automation is set to `parallel` mode, so multiple sensors can alert simultaneously without blocking each other
+- **One notification per run**: when several thresholds are out of range at the same time, their alerts are combined into a single notification with one line per condition. A single breach keeps its specific title, such as "Soil Moisture Low"; multiple breaches are titled "needs attention"
+- **Repeat alert**: the repeat schedule re-sends the alert while any condition persists
+- **Replaces instead of stacking**: every notification carries a stable tag, so a repeat replaces the previous alert on your phone instead of piling up a new one
 
 ---
 

@@ -646,6 +646,7 @@ trigger_variables:
     {% if 'channel' in notify_data and notify_channel != '' %}
       {% set message.data = dict(message.data, **{ 'channel': notify_channel }) %}
     {% endif %}
+    {% set message.data = dict(message.data, **{ 'tag': 'apollo-plt1-' ~ device_id }) %}
     {{ message.data }}
 
   time_hours: !input time_hours
@@ -657,6 +658,119 @@ trigger_variables:
     {{ device_entities(device_id) | select('match', 'number\..*wet_voltage.*|number\..*100_water.*') | list | first | default('') }}
   dry_voltage_value: !input dry_voltage_value
   wet_voltage_value: !input wet_voltage_value
+
+# ── Per-Run Variables ──────────────────────────────────────────────────────────────
+# Rendered fresh on every run. trigger_variables also render once at automation
+# load with limited templates, where states() is unavailable, so the live
+# sensor reads live here instead. Each breached threshold contributes one
+# entry pairing its alert title with its full message line, worded exactly
+# like the per-sensor notifications this blueprint used to send.
+variables:
+  breaches: >-
+    {% set b = namespace(items=[]) %}
+    {% if soil_moisture_enabled and soil_moisture_entity != ''
+          and is_number(states(soil_moisture_entity))
+          and states(soil_moisture_entity) | float < min_soil_moisture %}
+      {% set b.items = b.items + [{'title': 'Soil Moisture Low',
+         'message': 'Soil moisture is ' ~ (states(soil_moisture_entity) | float(0) | round(1))
+           ~ '%, below the minimum of ' ~ min_soil_moisture ~ '%. Time to water!'}] %}
+    {% endif %}
+    {% if soil_moisture_enabled and soil_moisture_entity != ''
+          and is_number(states(soil_moisture_entity))
+          and states(soil_moisture_entity) | float > max_soil_moisture %}
+      {% set b.items = b.items + [{'title': 'Soil Moisture High',
+         'message': 'Soil moisture is ' ~ (states(soil_moisture_entity) | float(0) | round(1))
+           ~ '%, above the maximum of ' ~ max_soil_moisture ~ '%. Risk of overwatering!'}] %}
+    {% endif %}
+    {% if soil_temp_enabled and soil_temp_entity != ''
+          and is_number(states(soil_temp_entity))
+          and states(soil_temp_entity) | float < min_soil_temp %}
+      {% set b.items = b.items + [{'title': 'Soil Too Cold',
+         'message': 'Soil temperature is ' ~ (states(soil_temp_entity) | float(0) | round(1))
+           ~ state_attr(soil_temp_entity, 'unit_of_measurement')
+           ~ ', below the minimum of ' ~ min_soil_temp
+           ~ state_attr(soil_temp_entity, 'unit_of_measurement')
+           ~ '. Roots may be too cold!'}] %}
+    {% endif %}
+    {% if soil_temp_enabled and soil_temp_entity != ''
+          and is_number(states(soil_temp_entity))
+          and states(soil_temp_entity) | float > max_soil_temp %}
+      {% set b.items = b.items + [{'title': 'Soil Too Hot',
+         'message': 'Soil temperature is ' ~ (states(soil_temp_entity) | float(0) | round(1))
+           ~ state_attr(soil_temp_entity, 'unit_of_measurement')
+           ~ ', above the maximum of ' ~ max_soil_temp
+           ~ state_attr(soil_temp_entity, 'unit_of_measurement')
+           ~ '. Roots may overheat!'}] %}
+    {% endif %}
+    {% if air_temp_enabled and air_temp_entity != ''
+          and is_number(states(air_temp_entity))
+          and states(air_temp_entity) | float < min_air_temp %}
+      {% set b.items = b.items + [{'title': 'Air Too Cold',
+         'message': 'Air temperature is ' ~ (states(air_temp_entity) | float(0) | round(1))
+           ~ state_attr(air_temp_entity, 'unit_of_measurement')
+           ~ ', below the minimum of ' ~ min_air_temp
+           ~ state_attr(air_temp_entity, 'unit_of_measurement')
+           ~ '. Environment may be too cold!'}] %}
+    {% endif %}
+    {% if air_temp_enabled and air_temp_entity != ''
+          and is_number(states(air_temp_entity))
+          and states(air_temp_entity) | float > max_air_temp %}
+      {% set b.items = b.items + [{'title': 'Air Too Hot',
+         'message': 'Air temperature is ' ~ (states(air_temp_entity) | float(0) | round(1))
+           ~ state_attr(air_temp_entity, 'unit_of_measurement')
+           ~ ', above the maximum of ' ~ max_air_temp
+           ~ state_attr(air_temp_entity, 'unit_of_measurement')
+           ~ '. Environment may be too hot!'}] %}
+    {% endif %}
+    {% if air_humidity_enabled and air_humidity_entity != ''
+          and is_number(states(air_humidity_entity))
+          and states(air_humidity_entity) | float < min_air_humidity %}
+      {% set b.items = b.items + [{'title': 'Air Too Dry',
+         'message': 'Air humidity is ' ~ (states(air_humidity_entity) | float(0) | round(1))
+           ~ '%, below the minimum of ' ~ min_air_humidity
+           ~ '%. Dry air can stress your plant!'}] %}
+    {% endif %}
+    {% if air_humidity_enabled and air_humidity_entity != ''
+          and is_number(states(air_humidity_entity))
+          and states(air_humidity_entity) | float > max_air_humidity %}
+      {% set b.items = b.items + [{'title': 'Humidity Too High',
+         'message': 'Air humidity is ' ~ (states(air_humidity_entity) | float(0) | round(1))
+           ~ '%, above the maximum of ' ~ max_air_humidity
+           ~ '%. Risk of mold or rot!'}] %}
+    {% endif %}
+    {% if light_enabled and light_entity != ''
+          and is_number(states(light_entity))
+          and states(light_entity) | float < min_light %}
+      {% set b.items = b.items + [{'title': 'Not Enough Light',
+         'message': 'Light level is ' ~ (states(light_entity) | float(0) | round(0))
+           ~ ' lux, below the minimum of ' ~ min_light
+           ~ ' lux. Move to a brighter spot!'}] %}
+    {% endif %}
+    {% if light_enabled and light_entity != ''
+          and is_number(states(light_entity))
+          and states(light_entity) | float > max_light %}
+      {% set b.items = b.items + [{'title': 'Too Much Light',
+         'message': 'Light level is ' ~ (states(light_entity) | float(0) | round(0))
+           ~ ' lux, above the maximum of ' ~ max_light
+           ~ ' lux. Direct sun may scorch leaves!'}] %}
+    {% endif %}
+    {% if uv_enabled and uv_entity != ''
+          and is_number(states(uv_entity))
+          and states(uv_entity) | float > max_uv %}
+      {% set b.items = b.items + [{'title': 'UV Index High',
+         'message': 'UV index is ' ~ (states(uv_entity) | float(0) | round(1))
+           ~ ', above the maximum of ' ~ max_uv
+           ~ '. Excessive UV exposure!'}] %}
+    {% endif %}
+    {% if battery_enabled and battery_entity != ''
+          and is_number(states(battery_entity))
+          and states(battery_entity) | float < min_battery %}
+      {% set b.items = b.items + [{'title': 'Sensor Battery Low',
+         'message': 'Sensor battery is ' ~ (states(battery_entity) | float(0) | round(0))
+           ~ '%, below the minimum of ' ~ min_battery
+           ~ '%. Please recharge!'}] %}
+    {% endif %}
+    {{ b.items }}
 
 # ── Triggers ─────────────────────────────────────────────────────────────────────
 triggers:
@@ -804,8 +918,9 @@ action:
         data:
           value: "{{ wet_voltage_value }}"
 
-  # Soil Moisture — Low
-  - alias: Soil Moisture Low Alert
+  # Low soil moisture still drives the RGB LED here. The notification itself
+  # is sent by the combined alert at the end of this action list.
+  - alias: Soil Moisture Low LED
     if:
       - condition: template
         value_template: >-
@@ -814,18 +929,6 @@ action:
              and states(soil_moisture_entity) | float < min_soil_moisture
              and (trigger.id | default('manual')) in ['time', 'manual', 'soil_moisture_min'] }}
     then:
-      - if:
-          - condition: template
-            value_template: "{{ notify_device is not none and notify_device != '' }}"
-        then:
-          - action: "notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}"
-            continue_on_error: true
-            data:
-              title: "{{ plant_name }} — Soil Moisture Low"
-              message: >-
-                Soil moisture is {{ states(soil_moisture_entity) | float(0) | round(1) }}%,
-                below the minimum of {{ min_soil_moisture }}%. Time to water!
-              data: "{{ device_message_data }}"
       - alias: Light the RGB LED
         if:
           - condition: template
@@ -851,33 +954,6 @@ action:
                 continue_on_error: true
                 target:
                   entity_id: "{{ rgb_light_entity }}"
-      - choose: []
-        default: !input custom_action
-
-  # Soil Moisture — High
-  - alias: Soil Moisture High Alert
-    if:
-      - condition: template
-        value_template: >-
-          {{ soil_moisture_enabled and soil_moisture_entity != ''
-             and is_number(states(soil_moisture_entity))
-             and states(soil_moisture_entity) | float > max_soil_moisture
-             and (trigger.id | default('manual')) in ['time', 'manual', 'soil_moisture_max'] }}
-    then:
-      - if:
-          - condition: template
-            value_template: "{{ notify_device is not none and notify_device != '' }}"
-        then:
-          - action: "notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}"
-            continue_on_error: true
-            data:
-              title: "{{ plant_name }} — Soil Moisture High"
-              message: >-
-                Soil moisture is {{ states(soil_moisture_entity) | float(0) | round(1) }}%,
-                above the maximum of {{ max_soil_moisture }}%. Risk of overwatering!
-              data: "{{ device_message_data }}"
-      - choose: []
-        default: !input custom_action
 
   # RGB LED: clear once the plant has been watered
   - alias: RGB LED Clear
@@ -938,15 +1014,18 @@ action:
                 target:
                   entity_id: "{{ rgb_light_entity }}"
 
-  # Soil Temperature — Low
-  - alias: Soil Temperature Low Alert
+  # Combined alert: every threshold that is currently out of range lands in
+  # one notification, one line per condition. A single breach keeps its
+  # specific title; multiple breaches share a summary title. The stable tag
+  # in device_message_data makes each repeat replace the previous
+  # notification on the phone instead of stacking a new one. led_sync runs
+  # only resync the LED and never notify.
+  - alias: Combined Alert
     if:
       - condition: template
         value_template: >-
-          {{ soil_temp_enabled and soil_temp_entity != ''
-             and is_number(states(soil_temp_entity))
-             and states(soil_temp_entity) | float < min_soil_temp
-             and (trigger.id | default('manual')) in ['time', 'manual', 'soil_temp_min'] }}
+          {{ breaches | count > 0
+             and (trigger.id | default('manual')) != 'led_sync' }}
     then:
       - if:
           - condition: template
@@ -955,245 +1034,14 @@ action:
           - action: "notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}"
             continue_on_error: true
             data:
-              title: "{{ plant_name }} — Soil Too Cold"
+              title: >-
+                {%- if breaches | count == 1 -%}
+                  {{ plant_name }} — {{ breaches[0].title }}
+                {%- else -%}
+                  {{ plant_name }} needs attention
+                {%- endif -%}
               message: >-
-                Soil temperature is {{ states(soil_temp_entity) | float(0) | round(1) }}{{ state_attr(soil_temp_entity, 'unit_of_measurement') }},
-                below the minimum of {{ min_soil_temp }}{{ state_attr(soil_temp_entity, 'unit_of_measurement') }}.
-                Roots may be too cold!
-              data: "{{ device_message_data }}"
-      - choose: []
-        default: !input custom_action
-
-  # Soil Temperature — High
-  - alias: Soil Temperature High Alert
-    if:
-      - condition: template
-        value_template: >-
-          {{ soil_temp_enabled and soil_temp_entity != ''
-             and is_number(states(soil_temp_entity))
-             and states(soil_temp_entity) | float > max_soil_temp
-             and (trigger.id | default('manual')) in ['time', 'manual', 'soil_temp_max'] }}
-    then:
-      - if:
-          - condition: template
-            value_template: "{{ notify_device is not none and notify_device != '' }}"
-        then:
-          - action: "notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}"
-            continue_on_error: true
-            data:
-              title: "{{ plant_name }} — Soil Too Hot"
-              message: >-
-                Soil temperature is {{ states(soil_temp_entity) | float(0) | round(1) }}{{ state_attr(soil_temp_entity, 'unit_of_measurement') }},
-                above the maximum of {{ max_soil_temp }}{{ state_attr(soil_temp_entity, 'unit_of_measurement') }}.
-                Roots may overheat!
-              data: "{{ device_message_data }}"
-      - choose: []
-        default: !input custom_action
-
-  # Air Temperature — Low
-  - alias: Air Temperature Low Alert
-    if:
-      - condition: template
-        value_template: >-
-          {{ air_temp_enabled and air_temp_entity != ''
-             and is_number(states(air_temp_entity))
-             and states(air_temp_entity) | float < min_air_temp
-             and (trigger.id | default('manual')) in ['time', 'manual', 'air_temp_min'] }}
-    then:
-      - if:
-          - condition: template
-            value_template: "{{ notify_device is not none and notify_device != '' }}"
-        then:
-          - action: "notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}"
-            continue_on_error: true
-            data:
-              title: "{{ plant_name }} — Air Too Cold"
-              message: >-
-                Air temperature is {{ states(air_temp_entity) | float(0) | round(1) }}{{ state_attr(air_temp_entity, 'unit_of_measurement') }},
-                below the minimum of {{ min_air_temp }}{{ state_attr(air_temp_entity, 'unit_of_measurement') }}.
-                Environment may be too cold!
-              data: "{{ device_message_data }}"
-      - choose: []
-        default: !input custom_action
-
-  # Air Temperature — High
-  - alias: Air Temperature High Alert
-    if:
-      - condition: template
-        value_template: >-
-          {{ air_temp_enabled and air_temp_entity != ''
-             and is_number(states(air_temp_entity))
-             and states(air_temp_entity) | float > max_air_temp
-             and (trigger.id | default('manual')) in ['time', 'manual', 'air_temp_max'] }}
-    then:
-      - if:
-          - condition: template
-            value_template: "{{ notify_device is not none and notify_device != '' }}"
-        then:
-          - action: "notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}"
-            continue_on_error: true
-            data:
-              title: "{{ plant_name }} — Air Too Hot"
-              message: >-
-                Air temperature is {{ states(air_temp_entity) | float(0) | round(1) }}{{ state_attr(air_temp_entity, 'unit_of_measurement') }},
-                above the maximum of {{ max_air_temp }}{{ state_attr(air_temp_entity, 'unit_of_measurement') }}.
-                Environment may be too hot!
-              data: "{{ device_message_data }}"
-      - choose: []
-        default: !input custom_action
-
-  # Air Humidity — Low
-  - alias: Air Humidity Low Alert
-    if:
-      - condition: template
-        value_template: >-
-          {{ air_humidity_enabled and air_humidity_entity != ''
-             and is_number(states(air_humidity_entity))
-             and states(air_humidity_entity) | float < min_air_humidity
-             and (trigger.id | default('manual')) in ['time', 'manual', 'air_humidity_min'] }}
-    then:
-      - if:
-          - condition: template
-            value_template: "{{ notify_device is not none and notify_device != '' }}"
-        then:
-          - action: "notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}"
-            continue_on_error: true
-            data:
-              title: "{{ plant_name }} — Air Too Dry"
-              message: >-
-                Air humidity is {{ states(air_humidity_entity) | float(0) | round(1) }}%,
-                below the minimum of {{ min_air_humidity }}%.
-                Dry air can stress your plant!
-              data: "{{ device_message_data }}"
-      - choose: []
-        default: !input custom_action
-
-  # Air Humidity — High
-  - alias: Air Humidity High Alert
-    if:
-      - condition: template
-        value_template: >-
-          {{ air_humidity_enabled and air_humidity_entity != ''
-             and is_number(states(air_humidity_entity))
-             and states(air_humidity_entity) | float > max_air_humidity
-             and (trigger.id | default('manual')) in ['time', 'manual', 'air_humidity_max'] }}
-    then:
-      - if:
-          - condition: template
-            value_template: "{{ notify_device is not none and notify_device != '' }}"
-        then:
-          - action: "notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}"
-            continue_on_error: true
-            data:
-              title: "{{ plant_name }} — Humidity Too High"
-              message: >-
-                Air humidity is {{ states(air_humidity_entity) | float(0) | round(1) }}%,
-                above the maximum of {{ max_air_humidity }}%.
-                Risk of mold or rot!
-              data: "{{ device_message_data }}"
-      - choose: []
-        default: !input custom_action
-
-  # Light — Too Dark
-  - alias: Light Too Low Alert
-    if:
-      - condition: template
-        value_template: >-
-          {{ light_enabled and light_entity != ''
-             and is_number(states(light_entity))
-             and states(light_entity) | float < min_light
-             and (trigger.id | default('manual')) in ['time', 'manual', 'light_min'] }}
-    then:
-      - if:
-          - condition: template
-            value_template: "{{ notify_device is not none and notify_device != '' }}"
-        then:
-          - action: "notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}"
-            continue_on_error: true
-            data:
-              title: "{{ plant_name }} — Not Enough Light"
-              message: >-
-                Light level is {{ states(light_entity) | float(0) | round(0) }} lux,
-                below the minimum of {{ min_light }} lux.
-                Move to a brighter spot!
-              data: "{{ device_message_data }}"
-      - choose: []
-        default: !input custom_action
-
-  # Light — Too Bright
-  - alias: Light Too High Alert
-    if:
-      - condition: template
-        value_template: >-
-          {{ light_enabled and light_entity != ''
-             and is_number(states(light_entity))
-             and states(light_entity) | float > max_light
-             and (trigger.id | default('manual')) in ['time', 'manual', 'light_max'] }}
-    then:
-      - if:
-          - condition: template
-            value_template: "{{ notify_device is not none and notify_device != '' }}"
-        then:
-          - action: "notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}"
-            continue_on_error: true
-            data:
-              title: "{{ plant_name }} — Too Much Light"
-              message: >-
-                Light level is {{ states(light_entity) | float(0) | round(0) }} lux,
-                above the maximum of {{ max_light }} lux.
-                Direct sun may scorch leaves!
-              data: "{{ device_message_data }}"
-      - choose: []
-        default: !input custom_action
-
-  # UV Index — High
-  - alias: UV Index High Alert
-    if:
-      - condition: template
-        value_template: >-
-          {{ uv_enabled and uv_entity != ''
-             and is_number(states(uv_entity))
-             and states(uv_entity) | float > max_uv
-             and (trigger.id | default('manual')) in ['time', 'manual', 'uv_max'] }}
-    then:
-      - if:
-          - condition: template
-            value_template: "{{ notify_device is not none and notify_device != '' }}"
-        then:
-          - action: "notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}"
-            continue_on_error: true
-            data:
-              title: "{{ plant_name }} — UV Index High"
-              message: >-
-                UV index is {{ states(uv_entity) | float(0) | round(1) }},
-                above the maximum of {{ max_uv }}.
-                Excessive UV exposure!
-              data: "{{ device_message_data }}"
-      - choose: []
-        default: !input custom_action
-
-  # Battery — Low (PLT-1B only)
-  - alias: Battery Low Alert
-    if:
-      - condition: template
-        value_template: >-
-          {{ battery_enabled and battery_entity != ''
-             and is_number(states(battery_entity))
-             and states(battery_entity) | float < min_battery
-             and (trigger.id | default('manual')) in ['time', 'manual', 'battery_min'] }}
-    then:
-      - if:
-          - condition: template
-            value_template: "{{ notify_device is not none and notify_device != '' }}"
-        then:
-          - action: "notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}"
-            continue_on_error: true
-            data:
-              title: "{{ plant_name }} — Sensor Battery Low"
-              message: >-
-                Sensor battery is {{ states(battery_entity) | float(0) | round(0) }}%,
-                below the minimum of {{ min_battery }}%.
-                Please recharge!
+                {{ breaches | map(attribute='message') | join('\n') }}
               data: "{{ device_message_data }}"
       - choose: []
         default: !input custom_action
