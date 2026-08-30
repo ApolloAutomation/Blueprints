@@ -777,7 +777,7 @@ triggers:
 
 conditions:
   - condition: template
-    value_template: "{{ not disable_repeat or trigger.id != 'time' }}"
+    value_template: "{{ not disable_repeat or (trigger.id | default('manual')) != 'time' }}"
 
 action:
   # Apply calibration voltages to device. Skipped for led_sync, which fires on
@@ -785,7 +785,7 @@ action:
   # so they must never abort the rest of the run.
   - if:
       - condition: template
-        value_template: "{{ dry_voltage_entity != '' and trigger.id != 'led_sync' }}"
+        value_template: "{{ dry_voltage_entity != '' and (trigger.id | default('manual')) != 'led_sync' }}"
     then:
       - action: number.set_value
         continue_on_error: true
@@ -795,7 +795,7 @@ action:
           value: "{{ dry_voltage_value }}"
   - if:
       - condition: template
-        value_template: "{{ wet_voltage_entity != '' and trigger.id != 'led_sync' }}"
+        value_template: "{{ wet_voltage_entity != '' and (trigger.id | default('manual')) != 'led_sync' }}"
     then:
       - action: number.set_value
         continue_on_error: true
@@ -812,7 +812,7 @@ action:
           {{ soil_moisture_enabled and soil_moisture_entity != ''
              and is_number(states(soil_moisture_entity))
              and states(soil_moisture_entity) | float < min_soil_moisture
-             and trigger.id in ['time', 'soil_moisture_min'] }}
+             and (trigger.id | default('manual')) in ['time', 'manual', 'soil_moisture_min'] }}
     then:
       - if:
           - condition: template
@@ -862,7 +862,7 @@ action:
           {{ soil_moisture_enabled and soil_moisture_entity != ''
              and is_number(states(soil_moisture_entity))
              and states(soil_moisture_entity) | float > max_soil_moisture
-             and trigger.id in ['time', 'soil_moisture_max'] }}
+             and (trigger.id | default('manual')) in ['time', 'manual', 'soil_moisture_max'] }}
     then:
       - if:
           - condition: template
@@ -889,7 +889,8 @@ action:
              and is_number(states(soil_moisture_entity))
              and states(soil_moisture_entity) | float >= min_soil_moisture
              and states(rgb_light_entity) == 'on'
-             and trigger.id in ['time', 'soil_moisture_ok', 'led_sync'] }}
+             and (trigger.id | default('manual'))
+             in ['time', 'manual', 'soil_moisture_ok', 'led_sync'] }}
     then:
       - action: light.turn_off
         continue_on_error: true
@@ -904,7 +905,7 @@ action:
     if:
       - condition: template
         value_template: >-
-          {{ trigger.id == 'led_sync'
+          {{ (trigger.id | default('manual')) in ['led_sync', 'manual']
              and led_mode != 'off' and rgb_light_entity != ''
              and soil_moisture_enabled and soil_moisture_entity != '' }}
     then:
@@ -945,7 +946,7 @@ action:
           {{ soil_temp_enabled and soil_temp_entity != ''
              and is_number(states(soil_temp_entity))
              and states(soil_temp_entity) | float < min_soil_temp
-             and trigger.id in ['time', 'soil_temp_min'] }}
+             and (trigger.id | default('manual')) in ['time', 'manual', 'soil_temp_min'] }}
     then:
       - if:
           - condition: template
@@ -971,7 +972,7 @@ action:
           {{ soil_temp_enabled and soil_temp_entity != ''
              and is_number(states(soil_temp_entity))
              and states(soil_temp_entity) | float > max_soil_temp
-             and trigger.id in ['time', 'soil_temp_max'] }}
+             and (trigger.id | default('manual')) in ['time', 'manual', 'soil_temp_max'] }}
     then:
       - if:
           - condition: template
@@ -997,7 +998,7 @@ action:
           {{ air_temp_enabled and air_temp_entity != ''
              and is_number(states(air_temp_entity))
              and states(air_temp_entity) | float < min_air_temp
-             and trigger.id in ['time', 'air_temp_min'] }}
+             and (trigger.id | default('manual')) in ['time', 'manual', 'air_temp_min'] }}
     then:
       - if:
           - condition: template
@@ -1023,7 +1024,7 @@ action:
           {{ air_temp_enabled and air_temp_entity != ''
              and is_number(states(air_temp_entity))
              and states(air_temp_entity) | float > max_air_temp
-             and trigger.id in ['time', 'air_temp_max'] }}
+             and (trigger.id | default('manual')) in ['time', 'manual', 'air_temp_max'] }}
     then:
       - if:
           - condition: template
@@ -1049,7 +1050,7 @@ action:
           {{ air_humidity_enabled and air_humidity_entity != ''
              and is_number(states(air_humidity_entity))
              and states(air_humidity_entity) | float < min_air_humidity
-             and trigger.id in ['time', 'air_humidity_min'] }}
+             and (trigger.id | default('manual')) in ['time', 'manual', 'air_humidity_min'] }}
     then:
       - if:
           - condition: template
@@ -1075,7 +1076,7 @@ action:
           {{ air_humidity_enabled and air_humidity_entity != ''
              and is_number(states(air_humidity_entity))
              and states(air_humidity_entity) | float > max_air_humidity
-             and trigger.id in ['time', 'air_humidity_max'] }}
+             and (trigger.id | default('manual')) in ['time', 'manual', 'air_humidity_max'] }}
     then:
       - if:
           - condition: template
@@ -1101,7 +1102,7 @@ action:
           {{ light_enabled and light_entity != ''
              and is_number(states(light_entity))
              and states(light_entity) | float < min_light
-             and trigger.id in ['time', 'light_min'] }}
+             and (trigger.id | default('manual')) in ['time', 'manual', 'light_min'] }}
     then:
       - if:
           - condition: template
@@ -1127,7 +1128,7 @@ action:
           {{ light_enabled and light_entity != ''
              and is_number(states(light_entity))
              and states(light_entity) | float > max_light
-             and trigger.id in ['time', 'light_max'] }}
+             and (trigger.id | default('manual')) in ['time', 'manual', 'light_max'] }}
     then:
       - if:
           - condition: template
@@ -1153,7 +1154,7 @@ action:
           {{ uv_enabled and uv_entity != ''
              and is_number(states(uv_entity))
              and states(uv_entity) | float > max_uv
-             and trigger.id in ['time', 'uv_max'] }}
+             and (trigger.id | default('manual')) in ['time', 'manual', 'uv_max'] }}
     then:
       - if:
           - condition: template
@@ -1179,7 +1180,7 @@ action:
           {{ battery_enabled and battery_entity != ''
              and is_number(states(battery_entity))
              and states(battery_entity) | float < min_battery
-             and trigger.id in ['time', 'battery_min'] }}
+             and (trigger.id | default('manual')) in ['time', 'manual', 'battery_min'] }}
     then:
       - if:
           - condition: template
