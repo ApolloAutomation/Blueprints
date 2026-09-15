@@ -24,10 +24,7 @@ blueprint:
           filter:
             - integration: esphome
               manufacturer: ApolloAutomation
-              model: CAST-1-W
-            - integration: esphome
-              manufacturer: ApolloAutomation
-              model: CAST-1-ETH
+              model: CAST-1
           multiple: false
     button_on:
       name: "On button"
