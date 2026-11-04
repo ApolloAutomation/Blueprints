@@ -1,7 +1,7 @@
 blueprint:
-  name: Apollo CAST-1 WizMote
+  name: Apollo CAST-1 and CAST PRO-1 WizMote
   description: |
-    Make your WizMote control the Apollo CAST-1 exactly how you want.
+    Make your WizMote control the Apollo CAST-1 or CAST PRO-1 exactly how you want.
 
     **Features**
 
@@ -17,14 +17,17 @@ blueprint:
   source_url: https://github.com/ApolloAutomation/Blueprints/blob/main/CAST-1/CAST-1-WizMote.yaml
   input:
     cast1_device:
-      name: Apollo CAST-1
-      description: Select your CAST-1 from the dropdown!
+      name: Apollo CAST-1 or CAST PRO-1
+      description: Select your CAST-1 or CAST PRO-1 from the dropdown!
       selector:
         device:
           filter:
             - integration: esphome
               manufacturer: ApolloAutomation
               model: CAST-1
+            - integration: esphome
+              manufacturer: ApolloAutomation
+              model: CAST_PRO-1
           multiple: false
     button_on:
       name: "On button"
