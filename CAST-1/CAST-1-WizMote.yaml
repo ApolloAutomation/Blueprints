@@ -231,39 +231,39 @@ triggers:
     id: sync
   - trigger: event
     event_type: esphome.cast1_wizmote_event
-    event_data: { button: "on" }
+    event_data: { button: "on", device_id: !input cast1_device }
     id: "on"
   - trigger: event
     event_type: esphome.cast1_wizmote_event
-    event_data: { button: "off" }
+    event_data: { button: "off", device_id: !input cast1_device }
     id: "off"
   - trigger: event
     event_type: esphome.cast1_wizmote_event
-    event_data: { button: "night" }
+    event_data: { button: "night", device_id: !input cast1_device }
     id: "night"
   - trigger: event
     event_type: esphome.cast1_wizmote_event
-    event_data: { button: "brightness_up" }
+    event_data: { button: "brightness_up", device_id: !input cast1_device }
     id: "brightness_up"
   - trigger: event
     event_type: esphome.cast1_wizmote_event
-    event_data: { button: "brightness_down" }
+    event_data: { button: "brightness_down", device_id: !input cast1_device }
     id: "brightness_down"
   - trigger: event
     event_type: esphome.cast1_wizmote_event
-    event_data: { button: "1" }
+    event_data: { button: "1", device_id: !input cast1_device }
     id: "button_1"
   - trigger: event
     event_type: esphome.cast1_wizmote_event
-    event_data: { button: "2" }
+    event_data: { button: "2", device_id: !input cast1_device }
     id: "button_2"
   - trigger: event
     event_type: esphome.cast1_wizmote_event
-    event_data: { button: "3" }
+    event_data: { button: "3", device_id: !input cast1_device }
     id: "button_3"
   - trigger: event
     event_type: esphome.cast1_wizmote_event
-    event_data: { button: "4" }
+    event_data: { button: "4", device_id: !input cast1_device }
     id: "button_4"
 
 actions:
