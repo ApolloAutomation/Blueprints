@@ -231,40 +231,49 @@ triggers:
     id: sync
   - trigger: event
     event_type: esphome.cast1_wizmote_event
-    event_data: { button: "on", device_id: !input cast1_device }
+    event_data: { button: "on" }
     id: "on"
   - trigger: event
     event_type: esphome.cast1_wizmote_event
-    event_data: { button: "off", device_id: !input cast1_device }
+    event_data: { button: "off" }
     id: "off"
   - trigger: event
     event_type: esphome.cast1_wizmote_event
-    event_data: { button: "night", device_id: !input cast1_device }
+    event_data: { button: "night" }
     id: "night"
   - trigger: event
     event_type: esphome.cast1_wizmote_event
-    event_data: { button: "brightness_up", device_id: !input cast1_device }
+    event_data: { button: "brightness_up" }
     id: "brightness_up"
   - trigger: event
     event_type: esphome.cast1_wizmote_event
-    event_data: { button: "brightness_down", device_id: !input cast1_device }
+    event_data: { button: "brightness_down" }
     id: "brightness_down"
   - trigger: event
     event_type: esphome.cast1_wizmote_event
-    event_data: { button: "1", device_id: !input cast1_device }
+    event_data: { button: "1" }
     id: "button_1"
   - trigger: event
     event_type: esphome.cast1_wizmote_event
-    event_data: { button: "2", device_id: !input cast1_device }
+    event_data: { button: "2" }
     id: "button_2"
   - trigger: event
     event_type: esphome.cast1_wizmote_event
-    event_data: { button: "3", device_id: !input cast1_device }
+    event_data: { button: "3" }
     id: "button_3"
   - trigger: event
     event_type: esphome.cast1_wizmote_event
-    event_data: { button: "4", device_id: !input cast1_device }
+    event_data: { button: "4" }
     id: "button_4"
+
+# Only the selected device's WizMote. Going through device_entities also
+# matches a device id saved before HA 2026.8 split shared devices
+conditions:
+  - condition: template
+    value_template: >-
+      {{ trigger.id == 'sync'
+         or trigger.event.data.device_id == cast1_device
+         or trigger.event.data.device_id in (device_entities(cast1_device) | map('device_id') | list) }}
 
 actions:
   - choose:
